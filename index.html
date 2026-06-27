@@ -130,7 +130,7 @@
       <div class="reload" id="refresh" role="button" aria-label="Aktualisieren">
         <svg viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </div>
-      <span class="ver">v0.8</span>
+      <span class="ver">v1.0</span>
     </div>
   </header>
 
@@ -173,7 +173,7 @@
 
 <script>
 "use strict";
-const LAT=50.6034, LON=8.6516, WINDOW_HOURS=26;
+const LAT=50.6034, LON=8.6516, WINDOW_HOURS=72;
 const OLD_MIN=90;
 
 /* ---------- thermische Skala (nur Zahl/Akzent) ---------- */
@@ -272,7 +272,7 @@ function showState(w){el("stLoading").classList.toggle("on",w==="loading");el("s
 async function load(){
   showState("loading");el("refresh").classList.add("spin");
   try{
-    const now=new Date(), from=new Date(now-36*3600e3), to=new Date(now.getTime()+24*3600e3);
+    const now=new Date(), from=new Date(now-74*3600e3), to=new Date(now.getTime()+24*3600e3);
     const url=`https://api.brightsky.dev/weather?lat=${LAT}&lon=${LON}&date=${isoDate(from)}&last_date=${isoDate(to)}&tz=Europe/Berlin`;
     const r=await fetch(url,{headers:{Accept:"application/json"}});
     if(!r.ok)throw new Error("HTTP "+r.status);
@@ -357,8 +357,8 @@ function paintHero(s,demo,today,d){
   el("temp").innerHTML=fmt1(s.temp)+'<span class="deg">°C</span>';el("temp").style.color=rgb(c);
   el("condIc").innerHTML=icon(s.icon||"cloudy",54);
   el("condLbl").textContent=LABELS[s.icon]||"—";
-  const fe=el("feelV");fe.textContent=d.feel!=null?Math.round(d.feel)+"°":"–";
-  el("hiV").textContent="↑ "+Math.round(d.hi)+"°";el("loV").textContent="↓ "+Math.round(d.lo)+"°";
+  const fe=el("feelV");fe.textContent=d.feel!=null?fmt1(d.feel)+"°":"–";
+  el("hiV").textContent="↑ "+fmt1(d.hi)+"°";el("loV").textContent="↓ "+fmt1(d.lo)+"°";
 
   // Hitze/Kälte-Hinweis nur bei Schwellen
   const heat=el("heat");heat.className="heat";
@@ -432,16 +432,21 @@ function renderTiles(s,d){
 
 /* ---------- Demo (realer Hitze-Snapshot mit allen Feldern) ---------- */
 function DEMO(){
-  const seq=[[27.3,"clear-day"],[30.6,"clear-day"],[34.2,"clear-day"],[36.3,"clear-day"],[37.0,"clear-day"],[37.1,"partly-cloudy-day"],[36.8,"clear-day"],[35.0,"clear-day"],[31.8,"clear-day"],[28.5,"partly-cloudy-night"],[26.2,"cloudy"],[25.2,"cloudy"],[23.9,"clear-night"],[22.5,"clear-night"],[21.2,"clear-night"],[21.8,"clear-night"],[23.7,"clear-day"],[28.3,"clear-day"],[31.0,"clear-day"],[34.0,"clear-day"],[36.4,"clear-day"],[37.8,"clear-day"],[38.4,"clear-day"],[37.6,"partly-cloudy-day"],[34.2,"partly-cloudy-day"],[30.1,"partly-cloudy-day"],[28.4,"partly-cloudy-day"]];
-  const rh=[55,46,38,33,29,28,28,32,40,53,60,63,66,69,72,70,62,49,42,35,30,26,24,27,33,40,42];
-  const now=new Date(),top=new Date(now);top.setMinutes(0,0,0);const n=seq.length;
-  return seq.map((s,i)=>{const d=new Date(top.getTime()-(n-1-i)*3600e3);const fc=(i>=n-4&&i<n-1);
-    return {timestamp:d.toISOString(),temperature:s[0],icon:s[1],relative_humidity:rh[i],
-      wind_speed:[9,12,15][i%3]+4,wind_direction:[120,140,160][i%3],wind_gust_speed:[20,26,24][i%3]+4,
-      pressure_msl:1014-i*0.3,dew_point:Math.round((s[0]-(100-rh[i])/5)*10)/10,cloud_cover:[5,10,30,20][i%4],
-      visibility:[40000,35000,28000][i%3],sunshine:s[1].includes("night")?0:(s[1].includes("clear")?58:s[1].includes("partly")?32:0),
-      solar:(s[1].includes("clear")&&!s[1].includes("night"))?[0,.1,.4,.7,.8,.78][Math.min(5,Math.abs(13-i))]:0,
-      precipitation:0,_fc:fc,_live:i===n-1};});
+  const now=new Date(),top=new Date(now);top.setMinutes(0,0,0);const N=72,out=[];
+  for(let i=0;i<N;i++){
+    const d=new Date(top.getTime()-(N-1-i)*3600e3), H=d.getHours()+d.getMinutes()/60;
+    const temp=Math.round((29.5+9.3*Math.sin(2*Math.PI*(H-9.5)/24))*10)/10;
+    const night=H<5.3||H>21.6, cf=[5,10,35,60,20,10,45][(i*3+Math.floor(i/5))%7];
+    const ic=night?(cf>55?"cloudy":cf>22?"partly-cloudy-night":"clear-night"):(cf>55?"cloudy":cf>22?"partly-cloudy-day":"clear-day");
+    const rh=Math.max(22,Math.min(86,Math.round(96-temp*1.75)));
+    out.push({timestamp:d.toISOString(),temperature:temp,icon:ic,relative_humidity:rh,
+      wind_speed:[7,10,13,9][i%4]+3,wind_direction:[90,110,135,160][i%4],wind_gust_speed:[15,20,24][i%3]+5,
+      pressure_msl:Math.round((1014+2.2*Math.sin(i/9))*10)/10,dew_point:Math.round((temp-(100-rh)/5)*10)/10,cloud_cover:cf,
+      visibility:[40000,35000,30000][i%3],sunshine:night?0:(ic.includes("clear")?58:ic.includes("partly")?32:0),
+      solar:(!night&&ic.includes("clear"))?Math.round(0.85*Math.max(0,Math.sin(Math.PI*(H-5.3)/16))*100)/100:0,
+      precipitation:0,_fc:(i>=N-4&&i<N-1),_live:i===N-1});
+  }
+  return out;
 }
 
 el("refresh").onclick=()=>load();
