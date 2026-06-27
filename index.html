@@ -147,6 +147,16 @@
   .fc-div{display:flex;align-items:center;gap:9px;padding:9px 2px 5px;font-size:10px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
   .fc-div::before,.fc-div::after{content:"";flex:1;height:1px;background:var(--line)}
   .fc-note{font-size:11px;color:var(--faint);padding:8px 2px 6px;line-height:1.4}
+  .uvcard{padding:13px 14px 9px}
+  .uvhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .uvnow{font-size:13px;font-weight:650;color:var(--muted);margin-top:5px}
+  .uvnow b{font-size:18px}
+  .uvmax{font-size:10.5px;color:var(--faint);text-align:right;line-height:1.4}
+  .uvmax b{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .uvcard canvas{width:100%;height:104px;display:block;margin-top:6px}
+  .uvleg{display:flex;gap:14px;justify-content:center;margin-top:4px;font-size:10.5px;color:var(--muted)}
+  .uvleg i.ln{display:inline-block;width:13px;height:0;border-top:2.4px solid #e07a1f;vertical-align:middle;margin-right:4px;border-radius:2px}
+  .uvleg i.ln.ac{border-top:2px dashed #5a6e8c}
   .fc-row .fi{width:26px;height:26px;flex:none;display:flex}
   .fc-row .pp{width:46px;font-size:11px;color:var(--rain);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:3px}
   .fc-row .rng{flex:1;display:flex;align-items:center;gap:9px}
@@ -167,7 +177,7 @@
       <div class="reload" id="refresh" role="button" aria-label="Aktualisieren">
         <svg viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </div>
-      <span class="ver">v1.3</span>
+      <span class="ver">v1.4</span>
     </div>
   </header>
 
@@ -461,7 +471,7 @@ function drawChart(rows){
   const lx=X(rows.length-1),ly=Y(rows[rows.length-1].temperature),cc=thermal(rows[rows.length-1].temperature);
   ctx.beginPath();ctx.arc(lx,ly,6,0,7);ctx.fillStyle=rgba(cc,.2);ctx.fill();ctx.beginPath();ctx.arc(lx,ly,3.5,0,7);ctx.fillStyle=rgb(cc);ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle="#fff";ctx.stroke();
 }
-let _rt;window.addEventListener("resize",()=>{clearTimeout(_rt);_rt=setTimeout(()=>{if(lastRows)drawChart(lastRows);},150);});
+let _rt;window.addEventListener("resize",()=>{clearTimeout(_rt);_rt=setTimeout(()=>{if(lastRows)drawChart(lastRows);if(lastUVH)drawUV(lastUVH);},150);});
 
 function tile(k,val,unit,sub){return `<div class="tile"><div class="k">${k}</div><div class="val">${val}${unit?` <small>${unit}</small>`:""}</div>${sub?`<div class="sub">${sub}</div>`:""}</div>`;}
 function compass(deg){if(deg==null)return"";const r=deg*Math.PI/180,x=18+Math.sin(r)*10.5,y=18-Math.cos(r)*10.5;
@@ -550,7 +560,8 @@ function renderAlerts(j){const box=el("alerts");box.innerHTML="";const al=(j&&j.
     let sev=(a.severity||"moderate").toLowerCase();if(!rank[sev])sev="moderate";
     const div=document.createElement("div");div.className="alert "+sev;
     div.innerHTML=`<div class="ai">${warnIc("currentColor")}</div><div><div class="at">${a.event_de||a.event_en||"Wetterwarnung"}</div>${a.headline_de?`<div class="ad">${a.headline_de}</div>`:""}</div>`;
-    box.appendChild(div);});}
+    box.appendChild(div);});
+  if(al.some(a=>/hitze|uv-?index/i.test(a.event_de||a.event_en||"")))el("heat").classList.remove("on");}
 
 /* --- Render: Regen-Nowcast --- */
 function renderNowcast(j){
@@ -589,13 +600,20 @@ function renderForecast(j){
 
 /* --- Render: Luft, Pollen, Mond --- */
 function moonTile(mo){return `<div class="tile"><div class="k">Mond</div><div class="val" style="display:flex;align-items:center;gap:9px;margin-top:5px">${moonSvg(mo)}<span style="font-size:20px">${mo.illum}%</span></div><div class="sub">${mo.name}</div></div>`;}
+let lastUVH=null;
 function renderAirGrid(air){
   el("airSec").classList.remove("hidden");
-  let html=moonTile(moonInfo(new Date()));
-  const c=air&&air.current;
+  const c=air&&air.current,h=air&&air.hourly;
+  let html="";
+  // UV-Kurve (max. möglich = clear-sky, plus tatsächlich)
+  if(h&&h.uv_index_clear_sky){
+    let pk=-1,pkI=-1;h.uv_index_clear_sky.forEach((v,i)=>{if(v!=null&&v>pk){pk=v;pkI=i;}});
+    const pkTime=pkI>=0?new Date(h.time[pkI]).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):"–";
+    const uvN=c&&c.uv_index!=null?c.uv_index:0,[un,ucol]=uvCat(uvN);
+    html+=`<div class="tile wide uvcard"><div class="uvhead"><div><div class="k">UV-Index heute</div><div class="uvnow">jetzt <b style="color:${ucol}">${Math.round(uvN)}</b> · <span style="color:${ucol};font-weight:700">${un}</span></div></div><div class="uvmax">max. möglich (klarer Himmel)<br><b>UV ${Math.round(pk)} · ${pkTime} Uhr</b></div></div><canvas id="uvchart"></canvas><div class="uvleg"><span><i class="ln cs"></i>max. möglich</span><span><i class="ln ac"></i>mit Wolken</span></div></div>`;
+  }
+  html+=moonTile(moonInfo(new Date()));
   if(c){
-    const [uc,ucol]=uvCat(c.uv_index),uvMax=air.hourly&&air.hourly.uv_index?Math.max(...air.hourly.uv_index.filter(v=>v!=null)):null;
-    html+=tile("UV-Index",c.uv_index!=null?Math.round(c.uv_index):"–","",`<span style="color:${ucol};font-weight:750">${uc}</span>${uvMax!=null?" · Tagesmax "+Math.round(uvMax):""}`);
     const [ac,acol]=aqiCat(c.european_aqi);
     html+=tile("Luftqualität",c.european_aqi!=null?Math.round(c.european_aqi):"–","AQI",`<span style="color:${acol};font-weight:750">${ac}</span>${c.pm2_5!=null?" · PM2.5 "+Math.round(c.pm2_5):""}`);
     const types=[["Gräser",c.grass_pollen],["Birke",c.birch_pollen],["Erle",c.alder_pollen],["Beifuß",c.mugwort_pollen],["Ambrosia",c.ragweed_pollen]].filter(t=>t[1]!=null&&t[1]>=1).sort((a,b)=>b[1]-a[1]);
@@ -603,13 +621,38 @@ function renderAirGrid(air){
     html+=`<div class="tile wide"><div class="k">Pollenflug</div><div class="sub" style="margin-top:8px;flex-wrap:wrap;gap:8px 4px">${psub}</div></div>`;
   }
   el("gridAir").innerHTML=html;
+  lastUVH=h;if(h&&h.uv_index_clear_sky)requestAnimationFrame(()=>drawUV(h));
+}
+
+function drawUV(h){
+  const cv=el("uvchart");if(!cv||!h||!h.time||!h.uv_index_clear_sky)return;
+  const cs=h.uv_index_clear_sky,ac=h.uv_index||[],tms=h.time.map(t=>new Date(t).getTime());
+  let i0=-1,i1=-1;for(let i=0;i<cs.length;i++){if((cs[i]||0)>0.05){if(i0<0)i0=i;i1=i;}}
+  if(i0<0||i1<=i0)return;i0=Math.max(0,i0-1);i1=Math.min(cs.length-1,i1+1);
+  const dpr=Math.min(window.devicePixelRatio||1,3),W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
+  cv.width=W*dpr;cv.height=H*dpr;const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+  const gx0=22,gx1=W-10,gy0=10,gy1=H-16,yMax=Math.max(3,Math.ceil(Math.max(...cs.slice(i0,i1+1))));
+  const X=t=>gx0+(gx1-gx0)*((t-tms[i0])/(tms[i1]-tms[i0])),Y=u=>gy1-(gy1-gy0)*(u/yMax);
+  x.font="9px -apple-system,system-ui,sans-serif";x.textBaseline="middle";
+  for(let g=0;g<=yMax;g+=(yMax>6?3:2)){const yy=Y(g);x.strokeStyle="rgba(15,23,42,.06)";x.lineWidth=1;x.beginPath();x.moveTo(gx0,yy);x.lineTo(gx1,yy);x.stroke();x.fillStyle="#9aa7b8";x.textAlign="right";x.fillText(g,gx0-4,yy);}
+  x.textBaseline="top";x.textAlign="center";
+  for(let i=i0;i<=i1;i++){if(new Date(tms[i]).getHours()%4===0){x.fillStyle="#9aa7b8";x.fillText(new Date(tms[i]).getHours(),X(tms[i]),gy1+4);}}
+  x.beginPath();x.moveTo(X(tms[i0]),Y(cs[i0]));for(let i=i0;i<=i1;i++)x.lineTo(X(tms[i]),Y(cs[i]));x.lineTo(X(tms[i1]),gy1);x.lineTo(X(tms[i0]),gy1);x.closePath();
+  const fg=x.createLinearGradient(0,gy0,0,gy1);fg.addColorStop(0,"rgba(224,122,31,.20)");fg.addColorStop(1,"rgba(224,122,31,.02)");x.fillStyle=fg;x.fill();
+  x.lineJoin="round";x.lineCap="round";x.lineWidth=2.4;
+  for(let i=i0+1;i<=i1;i++){x.strokeStyle=uvCat((cs[i-1]+cs[i])/2)[1];x.beginPath();x.moveTo(X(tms[i-1]),Y(cs[i-1]));x.lineTo(X(tms[i]),Y(cs[i]));x.stroke();}
+  if(ac.length){x.setLineDash([3,3]);x.lineWidth=1.6;x.strokeStyle="rgba(90,110,140,.6)";x.beginPath();let st=false;for(let i=i0;i<=i1;i++){const v=ac[i]==null?0:ac[i],px=X(tms[i]),py=Y(v);st?x.lineTo(px,py):(x.moveTo(px,py),st=true);}x.stroke();x.setLineDash([]);}
+  const now=Date.now();if(now>=tms[i0]&&now<=tms[i1]){const xn=X(now);x.strokeStyle="rgba(23,32,46,.32)";x.setLineDash([2,2]);x.lineWidth=1;x.beginPath();x.moveTo(xn,gy0);x.lineTo(xn,gy1);x.stroke();x.setLineDash([]);
+    let uvNow=0;for(let i=i0;i<i1;i++){if(now>=tms[i]&&now<=tms[i+1]){const f=(now-tms[i])/(tms[i+1]-tms[i]),a=ac[i]==null?0:ac[i],b=ac[i+1]==null?0:ac[i+1];uvNow=a+(b-a)*f;break;}}
+    const yn=Y(uvNow);x.beginPath();x.arc(xn,yn,4,0,7);x.fillStyle=uvCat(uvNow)[1];x.fill();x.lineWidth=1.5;x.strokeStyle="#fff";x.stroke();
+    x.fillStyle="#5c6b80";x.font="9px -apple-system,system-ui,sans-serif";x.textBaseline="bottom";x.textAlign=xn>gx1-30?"right":"left";x.fillText("jetzt",xn+(xn>gx1-30?-3:3),gy0+9);}
 }
 
 /* --- Lader (parallel, fehlertolerant) --- */
 function loadExtras(){
   renderAirGrid(null); // Mond sofort, Rest folgt
   const ll=`latitude=${LAT}&longitude=${LON}`;
-  fetchJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${ll}&current=uv_index,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,ragweed_pollen&hourly=uv_index&forecast_days=1&timezone=Europe%2FBerlin`).then(renderAirGrid).catch(e=>console.warn("air",e.message));
+  fetchJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${ll}&current=uv_index,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,ragweed_pollen&hourly=uv_index,uv_index_clear_sky&forecast_days=1&timezone=Europe%2FBerlin`).then(renderAirGrid).catch(e=>console.warn("air",e.message));
   fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=16&timezone=Europe%2FBerlin`).then(renderForecast).catch(e=>{el("fcSec").classList.add("hidden");console.warn("fc",e.message);});
   fetchJSON(`https://api.brightsky.dev/radar?lat=${LAT}&lon=${LON}&distance=1000&format=plain&tz=Europe/Berlin&date=${encodeURIComponent(new Date().toISOString())}`,11000).then(renderNowcast).catch(e=>{el("nowcastSec").classList.add("hidden");console.warn("radar",e.message);});
   fetchJSON(`https://api.brightsky.dev/alerts?lat=${LAT}&lon=${LON}`).then(renderAlerts).catch(e=>console.warn("alerts",e.message));
@@ -617,10 +660,15 @@ function loadExtras(){
 
 /* --- Demo für die Zusatz-Sektionen (Vorschau) --- */
 function DEMO_EXTRAS(){
-  renderAlerts({alerts:[{event_de:"Hitzewarnung",severity:"severe",headline_de:"Vor starker Hitze wird gewarnt. Höchstwerte bis 38 °C, kühle Nächte fehlen."}]});
+  renderAlerts({alerts:[
+    {event_de:"Extreme Hitze",severity:"severe",headline_de:"Amtliche WARNUNG vor extremer HITZE."},
+    {event_de:"Starke Hitze",severity:"moderate",headline_de:"Amtliche WARNUNG vor HITZE."}]});
   const radar=[...Array(25)].map((_,i)=>{const v=(i>=6&&i<15)?[4,12,22,30,28,20,11,5,2][i-6]:0;return {timestamp:new Date(Date.now()+i*300000).toISOString(),precipitation_5:[v||0]};});
   renderNowcast({radar});
-  renderAirGrid({current:{uv_index:6.4,european_aqi:33,pm2_5:9.4,pm10:16.2,nitrogen_dioxide:11,ozone:92,grass_pollen:42,birch_pollen:4,alder_pollen:0,mugwort_pollen:9,ragweed_pollen:0},hourly:{uv_index:[1,3,5,7,8,8,7,5,3,1]}});
+  const ymdStr=new Date().toLocaleDateString("en-CA"),times=[],uvCS=[],uvAC=[];
+  for(let i=0;i<24;i++){times.push(`${ymdStr}T${String(i).padStart(2,"0")}:00`);const day=Math.max(0,Math.sin(Math.PI*(i-5.3)/16.6)),cs=Math.round(8.3*day*10)/10;uvCS.push(cs);uvAC.push(Math.round(cs*((i>=14&&i<=18)?0.5:0.9)*10)/10);}
+  const hNow=new Date().getHours();
+  renderAirGrid({current:{uv_index:uvAC[hNow],european_aqi:33,pm2_5:9.4,pm10:16.2,nitrogen_dioxide:11,ozone:92,grass_pollen:42,birch_pollen:4,alder_pollen:0,mugwort_pollen:9,ragweed_pollen:0},hourly:{time:times,uv_index:uvAC,uv_index_clear_sky:uvCS}});
   const days=[...Array(16)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()+i);return d.toLocaleDateString("en-CA");});
   renderForecast({daily:{time:days,weather_code:[0,1,2,80,95,2,1,3,61,80,2,1,0,2,3,61],temperature_2m_max:[38,37,33,27,24,28,30,29,25,24,27,29,31,30,28,26],temperature_2m_min:[21,22,20,18,16,16,17,18,17,16,16,17,18,18,17,16],precipitation_probability_max:[0,5,25,70,80,20,10,30,60,70,20,10,5,15,25,55]}});
 }
