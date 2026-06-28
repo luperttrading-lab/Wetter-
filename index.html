@@ -143,9 +143,10 @@
   .nowcard .nh{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
   .nowcard .nt{font-size:15.5px;font-weight:800;letter-spacing:-.01em}
   .nowcard .ns{font-size:12px;color:var(--muted);text-align:right}
-  .nowcard .bars{display:flex;align-items:flex-end;gap:2px;height:50px;margin-top:13px}
-  .nowcard .bar{flex:1;background:linear-gradient(180deg,#6cbcf2,#2f86cf);border-radius:2px 2px 0 0;min-height:2px}
+  .nowcard .bars{display:flex;align-items:flex-end;gap:2px;height:50px;margin-top:13px;position:relative}
+  .nowcard .bar{flex:1;background:linear-gradient(180deg,#6cbcf2,#2f86cf);border-radius:2px 2px 0 0;min-height:2px;position:relative}
   .nowcard .bar.dry{background:#e9eef4}
+  .nowcard .bar.daybreak::before{content:"";position:absolute;left:-1.5px;bottom:0;height:50px;width:1px;background:var(--faint);opacity:.55}
   .nowcard .ax{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);margin-top:6px}
   /* 7-Tage */
   .card-list{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:4px 13px}
@@ -193,7 +194,7 @@
       <div class="reload" id="refresh" role="button" aria-label="Aktualisieren">
         <svg viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </div>
-      <span class="ver">v1.25</span>
+      <span class="ver">v1.26</span>
     </div>
   </header>
 
@@ -220,6 +221,7 @@
 
   <div id="content">
     <div id="nowcastSec" class="hidden"><div class="sect">Niederschlag · nächste 2 Std</div><div class="nowcard" id="nowcard"></div></div>
+    <div id="rainHrSec" class="hidden"><div class="sect">Regen · nächste 24 Std</div><div class="nowcard" id="rainHrCard"></div></div>
     <div class="sect">Verlauf</div>
     <div class="strip-card"><div class="strip" id="strip"></div></div>
     <div class="chart-card"><div class="chart-row"><canvas id="chartAxis"></canvas><div class="chart-scroll" id="chartScroll"><canvas id="chart"></canvas></div><div class="chart-cursor" id="chartCursor"><div class="cc-val" id="ccVal"></div><div class="cc-line"></div><div class="cc-dot" id="ccDot"></div><div class="cc-time" id="ccTime"></div></div></div></div>
@@ -634,12 +636,15 @@ function DEMO(){
     const night=H<5.3||H>21.6, cf=[5,10,35,60,20,10,45][(k*3+Math.floor(k/5))%7];
     const ic=night?(cf>55?"cloudy":cf>22?"partly-cloudy-night":"clear-night"):(cf>55?"cloudy":cf>22?"partly-cloudy-day":"clear-day");
     const rh=Math.max(22,Math.min(86,Math.round(96-temp*1.75)));
+    const futH=Math.round((d.getTime()-now.getTime())/3600e3);
+    const rainPat={5:0.4,6:1.7,7:3.2,8:1.3,9:0.5,10:0.2,18:0.3,19:0.9,20:0.4};
+    const precip=(future&&rainPat[futH])?rainPat[futH]:0;
     out.push({timestamp:d.toISOString(),temperature:temp,icon:ic,relative_humidity:rh,
       wind_speed:[7,10,13,9][k%4]+3,wind_direction:[90,110,135,160][k%4],wind_gust_speed:[15,20,24][k%3]+5,
       pressure_msl:Math.round((1014+2.2*Math.sin(k/9))*10)/10,dew_point:Math.round((temp-(100-rh)/5)*10)/10,cloud_cover:cf,
       visibility:[40000,35000,30000][k%3],sunshine:night?0:(ic.includes("clear")?58:ic.includes("partly")?32:0),
       solar:(!night&&ic.includes("clear"))?Math.round(0.85*Math.max(0,Math.sin(Math.PI*(H-5.3)/16))*100)/100:0,
-      precipitation:0,_fc:future,_live:(i===0)});
+      precipitation:precip,_fc:future,_live:(i===0)});
   }
   return out;
 }
@@ -700,6 +705,30 @@ function renderNowcast(j){
   const sc=Math.max(peak,0.5);
   const bars=series.map(s=>`<div class="bar${s.mmh<TH?" dry":""}" style="height:${s.mmh<TH?2:Math.max(3,Math.round(s.mmh/sc*48))}px"></div>`).join("");
   el("nowcard").innerHTML=`<div class="nh"><div class="nt">${summary}</div><div class="ns">${detail}</div></div><div class="bars">${bars}</div><div class="ax"><span>jetzt</span><span>+1 Std</span><span>+2 Std</span></div>`;
+  sec.classList.remove("hidden");
+}
+
+/* --- Render: Regen-Stundenprognose (nächste 24 Std, MOSMIX aus chartRows) --- */
+function renderRainHours(){
+  const sec=el("rainHrSec");if(!sec)return;
+  const rows=chartRows||fullRows||[],now=Date.now();
+  // stündliche Prognosewerte ab jetzt; nach voller Stunde deduplizieren
+  const raw=rows.map(r=>({t:new Date(r.timestamp).getTime(),mm:(r.precipitation!=null&&!isNaN(r.precipitation))?Math.max(0,+r.precipitation):0}))
+    .filter(h=>h.t>=now-30*60000&&h.t<=now+24.5*3600000).sort((a,b)=>a.t-b.t);
+  const seen=new Set(),H=[];for(const h of raw){const k=Math.round(h.t/3600000);if(seen.has(k))continue;seen.add(k);H.push(h);if(H.length>=24)break;}
+  if(H.length<4){sec.classList.add("hidden");return;}
+  const TH=0.1,total=H.reduce((s,h)=>s+h.mm,0),peak=Math.max(...H.map(h=>h.mm));
+  const f1=v=>v.toLocaleString("de-DE",{maximumFractionDigits:1});
+  const hLbl=t=>new Date(t).getHours()+"h";
+  let summary,detail;const fr=H.findIndex(h=>h.mm>=TH);
+  if(peak<TH){summary="Trocken";detail="die nächsten 24 Std kein Regen";}
+  else if(fr<=0){summary="Regen aktuell";detail=`~${f1(total)} mm · Spitze ${f1(peak)} mm/h`;}
+  else{summary=`Regen ab ${hLbl(H[fr].t)}`;detail=`~${f1(total)} mm gesamt · Spitze ${f1(peak)} mm/h`;}
+  const sc=Math.max(peak,0.5);let prevD=new Date(H[0].t).getDate();
+  const bars=H.map(h=>{const d=new Date(h.t),db=d.getDate()!==prevD;prevD=d.getDate();const ht=h.mm<TH?2:Math.max(3,Math.round(h.mm/sc*46));return `<div class="bar${h.mm<TH?" dry":""}${db?" daybreak":""}" style="height:${ht}px"></div>`;}).join("");
+  const last=H.length-1,idx=[0,Math.round(last*0.25),Math.round(last*0.5),Math.round(last*0.75),last];
+  const ax=idx.map((ix,i)=>`<span>${i===0?"jetzt":hLbl(H[ix].t)}</span>`).join("");
+  el("rainHrCard").innerHTML=`<div class="nh"><div class="nt">${summary}</div><div class="ns">${detail}</div></div><div class="bars">${bars}</div><div class="ax">${ax}</div>`;
   sec.classList.remove("hidden");
 }
 
@@ -807,6 +836,7 @@ function drawUV(h){
 /* --- Lader (parallel, fehlertolerant) --- */
 function loadExtras(){
   renderAirGrid(null); // Mond sofort, Rest folgt
+  renderRainHours();   // Regen-Stundenprognose aus bereits geladenen chartRows (kein extra Fetch)
   const ll=`latitude=${LAT}&longitude=${LON}`;
   fetchJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${ll}&current=uv_index,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,ragweed_pollen&hourly=uv_index,uv_index_clear_sky&forecast_days=1&timezone=Europe%2FBerlin`).then(renderAirGrid).catch(e=>console.warn("air",e.message));
   fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&forecast_days=16&timezone=Europe%2FBerlin`).then(renderForecast).catch(e=>{el("fcSec").classList.add("hidden");console.warn("fc",e.message);});
@@ -821,6 +851,7 @@ function DEMO_EXTRAS(){
     {event_de:"Starke Hitze",severity:"moderate",headline_de:"Amtliche WARNUNG vor HITZE."}]});
   const radar=[...Array(25)].map((_,i)=>{const v=(i>=6&&i<15)?[4,12,22,30,28,20,11,5,2][i-6]:0;return {timestamp:new Date(Date.now()+i*300000).toISOString(),precipitation_5:[v||0]};});
   renderNowcast({radar});
+  renderRainHours();
   const ymdStr=new Date().toLocaleDateString("en-CA"),times=[],uvCS=[],uvAC=[];
   for(let i=0;i<24;i++){times.push(`${ymdStr}T${String(i).padStart(2,"0")}:00`);const day=Math.max(0,Math.sin(Math.PI*(i-5.3)/16.6)),cs=Math.round(8.3*day*10)/10;uvCS.push(cs);uvAC.push(Math.round(cs*((i>=14&&i<=18)?0.5:0.9)*10)/10);}
   const hNow=new Date().getHours();
