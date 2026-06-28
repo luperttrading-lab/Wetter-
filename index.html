@@ -159,10 +159,9 @@
   .uvleg i.ln.max{border-top:2px solid #aab2c0}
   .uvnote{font-size:9.5px;color:var(--faint);text-align:center;margin-top:3px;line-height:1.3}
   .fc-row .fi{width:26px;height:26px;flex:none;display:flex}
-  .fc-row .pp{width:58px;height:30px;font-size:11px;color:var(--rain);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:3px}
-  .fc-row .pp .ppv{display:flex;align-items:center;gap:3px}
-  .fc-row .pp .mm{display:flex;align-items:flex-end;gap:3px;font-size:9.5px;color:#3a7bd5;line-height:1}
-  .fc-row .pp .mmbar{width:4px;background:#5a9bf0;border-radius:1.5px 1.5px 0 0;min-height:2px}
+  .fc-row .pp{width:92px;font-size:11px;color:var(--rain);font-variant-numeric:tabular-nums;display:flex;align-items:flex-end;gap:4px;line-height:1}
+  .fc-row .pp .mmbar{width:4px;background:#5a9bf0;border-radius:1.5px 1.5px 0 0;min-height:2px;margin-bottom:1px}
+  .fc-row .pp .mmv{font-size:9.5px;color:#3a7bd5;margin-bottom:1px}
   .fc-row .rng{flex:1;display:flex;align-items:center;gap:9px}
   .fc-row .lo{font-size:13px;color:var(--muted);width:28px;text-align:right;font-variant-numeric:tabular-nums}
   .fc-row .hiT{font-size:13.5px;font-weight:750;width:28px;font-variant-numeric:tabular-nums}
@@ -181,7 +180,7 @@
       <div class="reload" id="refresh" role="button" aria-label="Aktualisieren">
         <svg viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </div>
-      <span class="ver">v1.13</span>
+      <span class="ver">v1.14</span>
     </div>
   </header>
 
@@ -632,9 +631,10 @@ function renderForecast(j){
     if(i===7)html+=`<div class="fc-div">Langfristtrend</div>`;
     const wd=i===0?"Heute":new Date(x.t+"T12:00:00").toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
     const ic=wmo(x.wc)[0],left=((x.lo-aMin)/span)*100,width=Math.max(7,((x.hi-x.lo)/span)*100);
-    const ppLine=x.pp!=null&&x.pp>=10?`<div class="ppv">${dropMini}${x.pp}%</div>`:"";
-    const mmLine=x.mm!=null&&x.mm>=0.1?`<div class="mm"><span class="mmbar" style="height:${Math.max(2,Math.min(18,Math.round(x.mm/15*18)))}px"></span>${x.mm>=10?Math.round(x.mm):fmt1(x.mm)} mm</div>`:"";
-    html+=`<div class="fc-row${i>=7?" far":""}"><div class="wd">${wd}</div><div class="fi">${icon(ic,26)}</div><div class="pp">${ppLine}${mmLine}</div><div class="rng"><div class="lo">${Math.round(x.lo)}°</div><div class="track"><div class="fill" style="left:${left}%;width:${width}%;background:linear-gradient(90deg,${rgb(thermal(x.lo))},${rgb(thermal(x.hi))})"></div></div><div class="hiT">${Math.round(x.hi)}°</div></div></div>`;
+    const ppPct=x.pp!=null&&x.pp>=10?`${dropMini}${x.pp}%`:"";
+    const mmShow=x.mm!=null&&x.mm>=0.1;
+    const mmTxt=mmShow?`<span class="mmbar" style="height:${Math.max(2,Math.min(16,Math.round(x.mm/15*16)))}px"></span><span class="mmv">${x.mm>=10?Math.round(x.mm):fmt1(x.mm)} mm</span>`:"";
+    html+=`<div class="fc-row${i>=7?" far":""}"><div class="wd">${wd}</div><div class="fi">${icon(ic,26)}</div><div class="pp">${ppPct}${mmTxt}</div><div class="rng"><div class="lo">${Math.round(x.lo)}°</div><div class="track"><div class="fill" style="left:${left}%;width:${width}%;background:linear-gradient(90deg,${rgb(thermal(x.lo))},${rgb(thermal(x.hi))})"></div></div><div class="hiT">${Math.round(x.hi)}°</div></div></div>`;
   });
   if(days.length>7)html+=`<div class="fc-note">Tag 8–${days.length} ist Langfristtrend — deutlich geringere Vorhersagegüte, eher Tendenz als genaue Werte.</div>`;
   el("fcList").innerHTML=html;sec.classList.remove("hidden");
