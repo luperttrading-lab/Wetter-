@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BfS-PNG Auslese-Test v2</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,system-ui,sans-serif;color:#1c2432;line-height:1.5}
+  #bg{position:fixed;inset:0;z-index:0;background:#eef2f7}
+  .wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:22px 18px}
+  h1{font-size:19px;margin-bottom:6px}
+  p{font-size:14px;color:#5c6b80;margin-bottom:16px}
+  .row{font-size:17px;background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;
+       box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;justify-content:space-between;align-items:center}
+  .row b{font-size:15px}
+  .res{font-weight:800}
+  .ok{color:#1f7a3d}.bad{color:#c0392b}.wait{color:#8595a8}
+  .info{font-size:14px;background:#fff;border-radius:12px;padding:14px 16px;
+        box-shadow:0 1px 3px rgba(0,0,0,.07);margin:6px 0 14px}
+  .info b{color:#1c2432}
+  img{max-width:100%;border-radius:10px;display:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .note{font-size:12px;color:#8595a8;margin-top:12px}
+</style></head>
+<body>
+<div id="bg"></div>
+<div class="wrap">
+  <h1>BfS-PNG · Auslese-Test v2</h1>
+  <p>Zwei getrennte Prüfungen, um Ursachen sauber zu trennen.</p>
+  <div class="row"><b>1 · Anzeige (normal laden)</b><span class="res wait" id="a">⏳</span></div>
+  <div class="row"><b>2 · Auslesen (CORS-Pixel)</b><span class="res wait" id="b">⏳</span></div>
+  <div class="info" id="info">Test läuft …</div>
+  <img id="prev" alt="BfS-Messgrafik">
+  <div class="note">Quelle: uvi.bfs.de</div>
+</div>
+<script>
+  var BASE="https://uvi.bfs.de/Tagesgrafiken/EEr_Giessen-Wettenberg_today.png";
+  var a=document.getElementById("a"),b=document.getElementById("b"),
+      info=document.getElementById("info"),prev=document.getElementById("prev");
+
+  // ---- Test 1: normales Laden, ohne crossOrigin (= wie in der App) ----
+  var img1=new Image();
+  img1.onload=function(){
+    a.textContent="✅ lädt"; a.className="res ok";
+    prev.src=img1.src; prev.style.display="block";
+    test2();
+  };
+  img1.onerror=function(){
+    a.textContent="❌ lädt nicht"; a.className="res bad";
+    b.textContent="—"; b.className="res wait";
+    info.innerHTML="<b>Das Bild ist gerade gar nicht erreichbar.</b> Es ist nach Mitternacht — das BfS stellt die Tagesgrafik vermutlich erst im Tagesverlauf bereit (oder baut sie beim Tageswechsel neu auf). "+
+      "Bitte <b>tagsüber nochmal testen</b>. Erst wenn Test 1 ein ✅ zeigt, ist Test 2 aussagekräftig.";
+  };
+  img1.src=BASE+"?n="+Date.now();
+
+  // ---- Test 2: mit crossOrigin -> verlangt CORS-Header ----
+  function test2(){
+    var img2=new Image();
+    img2.crossOrigin="anonymous";
+    img2.onload=function(){
+      try{
+        var cv=document.createElement("canvas");
+        cv.width=img2.naturalWidth; cv.height=img2.naturalHeight;
+        var ctx=cv.getContext("2d"); ctx.drawImage(img2,0,0);
+        ctx.getImageData(0,0,1,1); // wirft bei tainted canvas
+        b.textContent="✅ auslesbar"; b.className="res ok";
+        info.innerHTML="<b>Perfekt — dein Plan ist machbar.</b> Bild "+img2.naturalWidth+" × "+img2.naturalHeight+
+          " px, Pixel sind lesbar. Nächster Schritt: Achsen kalibrieren und die echte Mess-Kurve in UV-Werte umrechnen.";
+      }catch(e){
+        b.textContent="❌ gesperrt"; b.className="res bad";
+        info.innerHTML="<b>Anzeige ja, Auslesen nein.</b> Das Bild lädt, aber die Pixel sind gesperrt (tainted canvas: "+e.message+"). "+
+          "Der BfS-Server erlaubt kein Auslesen — die echte Kurve lässt sich nicht in Zahlen holen.";
+      }
+    };
+    img2.onerror=function(){
+      b.textContent="❌ kein CORS"; b.className="res bad";
+      info.innerHTML="<b>Anzeige ja, Auslesen nein.</b> Sobald ich das Bild zum Auslesen anfordere (crossOrigin), lehnt der BfS-Server es komplett ab — es fehlt der Access-Control-Allow-Origin-Header. "+
+        "Die echte Mess-Kurve lässt sich damit <b>nicht</b> auslesen. Dann bleibt nur die Bewölkungs-Schätzung.";
+    };
+    img2.src=BASE+"?c="+Date.now();
+  }
+</script>
+</body></html>
