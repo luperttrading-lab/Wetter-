@@ -97,7 +97,7 @@
   .chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:12px 10px 8px;margin-top:11px}
   .chart-row{display:flex;align-items:stretch;position:relative}
   #chartAxis{width:32px;height:172px;flex:0 0 32px;display:block}
-  .chart-scroll{flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+  .chart-scroll{flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;overscroll-behavior-x:contain}
   .chart-scroll::-webkit-scrollbar{height:0}
   #chart{height:172px;display:block}
   .chart-cursor{position:absolute;top:0;bottom:0;left:calc(50% + 16px);transform:translateX(-50%);width:0;pointer-events:none;z-index:3}
@@ -190,7 +190,7 @@
       <div class="reload" id="refresh" role="button" aria-label="Aktualisieren">
         <svg viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </div>
-      <span class="ver">v1.18</span>
+      <span class="ver">v1.19</span>
     </div>
   </header>
 
@@ -525,6 +525,15 @@ function drawAxis(lo,hi,H,padT,padB){
 }
 let _rt;window.addEventListener("resize",()=>{clearTimeout(_rt);_rt=setTimeout(()=>{if(chartRows&&chartRows.length>1)drawChart(chartRows);else if(lastRows)drawChart(lastRows);if(lastUVH)drawUV(lastUVH);},150);});
 el("chartScroll").addEventListener("scroll",()=>{if(!_cursorRAF)_cursorRAF=requestAnimationFrame(()=>{_cursorRAF=0;updateCursor();});},{passive:true});
+function recenterChart(){const g=chartGeom;if(!g)return;const host=el("chartScroll"),span=g.W-g.viewW;if(span<=0)return;
+  const nowMs=Date.now(),frac=(nowMs>=g.tMin&&nowMs<=g.tMax)?(nowMs-g.tMin)/(g.tMax-g.tMin):0.5;
+  const target=Math.max(0,Math.min(span,Math.round(frac*span)));
+  if(host.scrollTo)host.scrollTo({left:target,behavior:"smooth"});else host.scrollLeft=target;}
+(function(){const host=el("chartScroll");let tT=0,tX=0,tY=0,moved=false;
+  host.addEventListener("touchstart",e=>{const t=e.touches[0];tX=t.clientX;tY=t.clientY;moved=false;},{passive:true});
+  host.addEventListener("touchmove",e=>{const t=e.touches[0];if(Math.abs(t.clientX-tX)>8||Math.abs(t.clientY-tY)>8)moved=true;},{passive:true});
+  host.addEventListener("touchend",()=>{if(moved)return;const n=Date.now();if(n-tT<320){tT=0;recenterChart();}else tT=n;},{passive:true});
+  host.addEventListener("dblclick",recenterChart);})();
 
 function tile(k,val,unit,sub){return `<div class="tile"><div class="k">${k}</div><div class="val">${val}${unit?` <small>${unit}</small>`:""}</div>${sub?`<div class="sub">${sub}</div>`:""}</div>`;}
 function compass(deg){if(deg==null)return"";const r=deg*Math.PI/180,x=18+Math.sin(r)*10.5,y=18-Math.cos(r)*10.5;
