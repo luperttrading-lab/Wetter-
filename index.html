@@ -197,7 +197,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.46</span>
+      <span class="ver">v1.47</span>
     </div>
   </header>
 
@@ -677,6 +677,20 @@ function cmfUV(cc){if(cc==null)return 1;return Math.max(0.25,1-0.70*Math.pow(cc/
 function moonInfo(d){const syn=29.530588853,ref=Date.UTC(2000,0,6,18,14)/86400000,days=d.getTime()/86400000-ref;let frac=((days/syn)%1+1)%1;const illum=Math.round((1-Math.cos(2*Math.PI*frac))/2*100);
   const names=["Neumond","zunehmende Sichel","erstes Viertel","zunehmender Mond","Vollmond","abnehmender Mond","letztes Viertel","abnehmende Sichel"];
   return {name:names[Math.floor(frac*8+0.5)%8],illum,frac};}
+/* Präzise Mondposition (Meeus 47, reduziert) → RA/Dec/Erddistanz · gegen SunCalc & astronomia (ELP) verifiziert */
+function moonPos(jd){const T=(jd-2451545)/36525,r=Math.PI/180;
+  const Lp=218.3164477+481267.88123421*T,D=297.8501921+445267.1114034*T,M=357.5291092+35999.0502909*T,Mp=134.9633964+477198.8675055*T,F=93.2720950+483202.0175233*T;
+  const lon=Lp+6.288774*Math.sin(Mp*r)+1.274027*Math.sin((2*D-Mp)*r)+0.658314*Math.sin(2*D*r)+0.213618*Math.sin(2*Mp*r)-0.185116*Math.sin(M*r)-0.114332*Math.sin(2*F*r)+0.058793*Math.sin((2*D-2*Mp)*r)+0.057066*Math.sin((2*D-M-Mp)*r)+0.053322*Math.sin((2*D+Mp)*r)+0.045758*Math.sin((2*D-M)*r)-0.040923*Math.sin((M-Mp)*r)-0.034720*Math.sin(D*r)-0.030383*Math.sin((M+Mp)*r);
+  const lat=5.128122*Math.sin(F*r)+0.280602*Math.sin((Mp+F)*r)+0.277693*Math.sin((Mp-F)*r)+0.173237*Math.sin((2*D-F)*r)+0.055413*Math.sin((2*D-Mp+F)*r)+0.046271*Math.sin((2*D-Mp-F)*r)+0.032573*Math.sin((2*D+F)*r)+0.017198*Math.sin((2*Mp+F)*r);
+  const dist=385000.56-20905.355*Math.cos(Mp*r)-3699.111*Math.cos((2*D-Mp)*r)-2955.968*Math.cos(2*D*r)-569.925*Math.cos(2*Mp*r)+246.158*Math.cos((2*D-2*Mp)*r)-152.138*Math.cos((2*D-M-Mp)*r)-170.733*Math.cos((2*D+Mp)*r)-204.586*Math.cos((2*D-M)*r)-129.620*Math.cos(M*r)+108.743*Math.cos(D*r)+104.755*Math.cos((2*D+Mp)*r);
+  const eps=(23.439291-0.0130042*T)*r,l=lon*r,b=lat*r;
+  return {ra:Math.atan2(Math.sin(l)*Math.cos(eps)-Math.tan(b)*Math.sin(eps),Math.cos(l)),dec:Math.asin(Math.sin(b)*Math.cos(eps)+Math.cos(b)*Math.sin(eps)*Math.sin(l)),dist};}
+function _gmst(jd){const T=(jd-2451545)/36525;return ((280.46061837+360.98564736629*(jd-2451545)+0.000387933*T*T)%360+360)%360;}
+function _moonAlt(ms){const jd=ms/86400000+2440587.5,p=moonPos(jd),H=(_gmst(jd)+LON)*Math.PI/180-p.ra,phi=LAT*Math.PI/180;return Math.asin(Math.sin(phi)*Math.sin(p.dec)+Math.cos(phi)*Math.cos(p.dec)*Math.cos(H))/(Math.PI/180);}
+function moonPhys(date){const dist=moonPos(date.getTime()/86400000+2440587.5).dist;
+  const start=new Date(date);start.setHours(0,0,0,0);const s=start.getTime(),h0=0.125,step=120000;let prev=_moonAlt(s)-h0,rise=null,set=null;
+  for(let t=s+step;t<=s+86400000;t+=step){const cur=_moonAlt(t)-h0;if(prev<0&&cur>=0&&rise==null)rise=t-step+prev/(prev-cur)*step;if(prev>0&&cur<=0&&set==null)set=t-step+prev/(prev-cur)*step;prev=cur;}
+  return {dist:Math.round(dist),rise,set};}
 function moonSvg(mo){const R=18,cx=20,cy=20,frac=mo.frac,rx=Math.abs(Math.cos(2*Math.PI*frac))*R;
   const wax=frac<0.5, leftNight=wax, rightNight=!wax, ellNight=wax?(frac<0.25):(frac>=0.75), W="#fff",B="#000", id="mn"+(gid++);
   const nm=`<rect x="${cx-R-1}" y="${cy-R}" width="${R+1}" height="${2*R}" fill="${leftNight?W:B}"/><rect x="${cx}" y="${cy-R}" width="${R+1}" height="${2*R}" fill="${rightNight?W:B}"/><ellipse cx="${cx}" cy="${cy}" rx="${rx.toFixed(2)}" ry="${R}" fill="${ellNight?W:B}"/>`;
@@ -771,7 +785,10 @@ function renderForecast(j){
 }
 
 /* --- Render: Luft, Pollen, Mond --- */
-function moonTile(mo){return `<div class="tile"><div class="k">Mond</div><div class="val" style="display:flex;align-items:center;gap:9px;margin-top:5px">${moonSvg(mo)}<span style="font-size:20px">${mo.illum}%</span></div><div class="sub">${mo.name}</div></div>`;}
+function moonTile(mo,ph){const ft=ms=>ms==null?"–":new Date(ms).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  const dk=ph.dist.toLocaleString("de-DE");
+  const sup=(mo.illum>=98&&ph.dist<361500)?"Supermond":(mo.illum>=98&&ph.dist>405000)?"Mini-Mond":(ph.dist<362000?"erdnah":ph.dist>405000?"erdfern":"");
+  return `<div class="tile wide"><div class="k">Mond</div><div style="display:flex;align-items:center;gap:13px;margin-top:6px">${moonSvg(mo)}<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:750">${mo.illum}% beleuchtet · ${mo.name}</div><div class="sub" style="margin-top:4px">↑ Aufgang ${ft(ph.rise)} · ↓ Untergang ${ft(ph.set)}</div><div class="sub" style="margin-top:2px">Entfernung ${dk} km${sup?" · "+sup:""}</div></div></div></div>`;}
 let lastUVH=null;
 function renderAirGrid(air){
   el("airSec").classList.remove("hidden");
@@ -790,7 +807,7 @@ function renderAirGrid(air){
     html+=`<div class="tile wide uvcard"><div class="uvhead"><div><div class="k">UV-Index heute</div><div class="uvnow">jetzt <b style="color:${ucol}">${fmt1(uvN)}</b> · <span style="color:${ucol};font-weight:700">${un}</span></div></div><div class="uvmax">max. möglich (klarer Himmel)<br><b>UV ${fmt1(pk)} · ${pkTime} Uhr</b></div></div><canvas id="uvchart"></canvas><div class="uvleg"><span><i class="ln"></i>real (bis jetzt)</span><span><i class="ln max"></i>max. möglich</span></div><div class="uvnote">Balken nach UV-Stärke gefärbt (grün → rot) · ab UV 3 (grüne Linie) = Vitamin-D-Bildung möglich · „real" = max. möglich × gemessene Bewölkung · amtliche Messung siehe unten</div></div>`;
     html+=`<div class="tile wide bfscard"><div class="k">Amtlich gemessen · BfS Gießen-Wettenberg</div><div class="bfswrap"><img id="bfsUv" src="https://uvi.bfs.de/Tagesgrafiken/EEr_Giessen-Wettenberg_today.png?ts=${Date.now()}" alt="UV-Index-Tagesverlauf der BfS-Messstation Gießen-Wettenberg (heute)" onload="var f=document.getElementById('bfsFb');if(f)f.style.display='none'" onerror="this.style.display='none';var f=document.getElementById('bfsFb');if(f)f.style.display='block'"><div class="bfsfb" id="bfsFb">Amtliche BfS-Messgrafik – lädt nur auf der veröffentlichten Seite (online), nicht in der App-Vorschau.</div></div><div class="uvnote">Breitbandradiometer, 1-Minuten-Takt, Station 203 m · echte Messung (kein Modell) · Quelle: <a href="https://www.bfs.de/DE/themen/opt/uv/uv-index/aktuelle-tagesverlaeufe/_documents/giessen_node.html" target="_blank" rel="noopener">BfS</a></div></div>`;
   }
-  html+=moonTile(moonInfo(new Date()));
+  html+=moonTile(moonInfo(new Date()),moonPhys(new Date()));
   if(c){
     const [ac,acol]=aqiCat(c.european_aqi);
     html+=tile("Luftqualität",c.european_aqi!=null?Math.round(c.european_aqi):"–","AQI",`<span style="color:${acol};font-weight:750">${ac}</span>${c.pm2_5!=null?" · PM2.5 "+Math.round(c.pm2_5):""}`);
