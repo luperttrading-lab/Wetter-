@@ -194,7 +194,7 @@
       <div class="reload" id="refresh" role="button" aria-label="Aktualisieren">
         <svg viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </div>
-      <span class="ver">v1.31</span>
+      <span class="ver">v1.32</span>
     </div>
   </header>
 
@@ -866,7 +866,13 @@ function DEMO_EXTRAS(){
 
 el("refresh").onclick=()=>load();
 el("retryBtn").onclick=()=>load();
-(()=>{const s=el("strip");const mark=()=>{stripUserScrolled=true;};s.addEventListener("pointerdown",mark,{passive:true});s.addEventListener("touchstart",mark,{passive:true});s.addEventListener("wheel",mark,{passive:true});})();
+function recenterStrip(){const h=el("strip");const nowEl=h.querySelector(".col.now");if(!nowEl)return;stripUserScrolled=false;const t=nowEl.offsetLeft+nowEl.offsetWidth/2-h.clientWidth/2;h.scrollTo({left:Math.max(0,Math.min(h.scrollWidth-h.clientWidth,t)),behavior:"smooth"});}
+(()=>{const s=el("strip");let tapT=0,tx=0,ty=0,moved=false;
+  s.addEventListener("touchstart",e=>{const t=e.touches[0];tx=t.clientX;ty=t.clientY;moved=false;stripUserScrolled=true;},{passive:true});
+  s.addEventListener("touchmove",e=>{const t=e.touches[0];if(Math.abs(t.clientX-tx)>8||Math.abs(t.clientY-ty)>8)moved=true;},{passive:true});
+  s.addEventListener("touchend",()=>{if(moved)return;const n=Date.now();if(n-tapT<320){tapT=0;recenterStrip();}else tapT=n;},{passive:true});
+  s.addEventListener("wheel",()=>{stripUserScrolled=true;},{passive:true});
+  s.addEventListener("dblclick",recenterStrip);})();
 el("demoBtn").onclick=()=>{const full=DEMO(),obs=full.filter(r=>new Date(r.timestamp)<=Date.now());fullRows=obs;chartRows=full;chartInit=false;stripInit=false;stripUserScrolled=false;render(obs.slice(-WINDOW_HOURS),obs,{station_name:"Gießen/Wettenberg",dwd_station_id:"01639",distance:600},true);DEMO_EXTRAS();};
 load();
 </script>
