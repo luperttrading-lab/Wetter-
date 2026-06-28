@@ -184,7 +184,7 @@
       <div class="reload" id="refresh" role="button" aria-label="Aktualisieren">
         <svg viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </div>
-      <span class="ver">v1.15</span>
+      <span class="ver">v1.16</span>
     </div>
   </header>
 
@@ -324,7 +324,7 @@ const sum=(rows,f)=>rows.reduce((a,r)=>a+(r[f]!=null&&!isNaN(r[f])?r[f]:0),0);
 
 /* ---------- State ---------- */
 const el=id=>document.getElementById(id);
-let fullRows=null, lastRows=null, snap=null, isDemo=false, chartRows=null, chartInit=false;
+let fullRows=null, lastRows=null, snap=null, isDemo=false, chartRows=null, chartInit=false, stripInit=false;
 function setHaze(t){const c=thermal(t);el("bg").style.setProperty("--bg-haze",rgba(c,.34));document.querySelector('meta[name=theme-color]').setAttribute("content",rgba(c,.16));}
 function showState(w){el("stLoading").classList.toggle("on",w==="loading");el("stError").classList.toggle("on",w==="error");el("content").classList.toggle("hidden",w==="loading"||w==="error");el("hero").classList.toggle("hidden",w==="loading"||w==="error");}
 
@@ -342,7 +342,7 @@ async function load(){
       .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).map(w=>({...w,_fc:fcIds.has(w.source_id)}));
     const all=sorted.filter(w=>new Date(w.timestamp)<=now);
     if(!all.length)throw new Error("Keine Messwerte im Zeitfenster.");
-    isDemo=false; fullRows=all; chartRows=sorted; chartInit=false;
+    isDemo=false; fullRows=all; chartRows=sorted; chartInit=false; stripInit=false;
     render(all.slice(-WINDOW_HOURS),all,obsSrc,false);
     tryCurrent(obsSrc);
     loadExtras();
@@ -397,7 +397,7 @@ function render(rows,all,src,demo){
 
   setHaze(snap.temp);
   paintHero(snap,demo,today,der);
-  renderStrip(rows);
+  renderStrip(chartRows&&chartRows.length>1?chartRows:rows);
   drawChart(chartRows&&chartRows.length>1?chartRows:rows);
   renderTiles(snap,der);
 }
@@ -435,18 +435,22 @@ function warnIc(col){return `<svg viewBox="0 0 24 24" width="18" height="18" fil
 function sunSmall(){return `<svg viewBox="0 0 24 24" width="18" height="18">${icon("clear-day",18).replace(/^<svg[^>]*>|<\/svg>$/g,"")}</svg>`;}
 
 function renderStrip(rows){
-  const h=el("strip");h.innerHTML="";let prev=null;
+  const h=el("strip");h.innerHTML="";let prev=null,nowEl=null;
+  const nowMs=Date.now();let nowIdx=-1;for(let i=rows.length-1;i>=0;i--){if(new Date(rows[i].timestamp).getTime()<=nowMs){nowIdx=i;break;}}
+  if(nowIdx<0)nowIdx=rows.length-1;
   rows.forEach((r,i)=>{
     const day=ymd(r.timestamp);
     if(prev&&day!==prev){const sep=document.createElement("div");sep.className="hsep";sep.innerHTML=`<span>${dateShort(r.timestamp)}</span>`;h.appendChild(sep);}
     prev=day;
-    const last=i===rows.length-1, night=isNight(r.timestamp);
+    const isNow=i===nowIdx, night=isNight(r.timestamp);
     const cell=document.createElement("div");
-    cell.className="col"+(last?" now":"")+(r._fc?" fc":"")+(night?" night":"");
-    cell.innerHTML=`<div class="t">${last?"jetzt":hourShort(r.timestamp)+" Uhr"}</div><div class="ic">${icon(r.icon||"cloudy",28)}</div><div class="v" style="color:${rgb(thermal(r.temperature))}">${fmt1(r.temperature)}°</div>`;
+    cell.className="col"+(isNow?" now":"")+(r._fc?" fc":"")+(night?" night":"");
+    cell.innerHTML=`<div class="t">${isNow?"jetzt":hourShort(r.timestamp)+" Uhr"}</div><div class="ic">${icon(r.icon||"cloudy",28)}</div><div class="v" style="color:${rgb(thermal(r.temperature))}">${fmt1(r.temperature)}°</div>`;
+    if(isNow)nowEl=cell;
     h.appendChild(cell);
   });
-  requestAnimationFrame(()=>{h.scrollLeft=h.scrollWidth;});
+  const doPos=!stripInit;stripInit=true;
+  requestAnimationFrame(()=>{if(!doPos)return;const t=nowEl?(nowEl.offsetLeft+nowEl.offsetWidth/2-h.clientWidth/2):h.scrollWidth;h.scrollLeft=Math.max(0,Math.min(h.scrollWidth-h.clientWidth,t));});
 }
 
 const cv=el("chart"), ctx=cv.getContext("2d"), cax=el("chartAxis"), axx=cax.getContext("2d");
@@ -768,7 +772,7 @@ function DEMO_EXTRAS(){
 
 el("refresh").onclick=()=>load();
 el("retryBtn").onclick=()=>load();
-el("demoBtn").onclick=()=>{const full=DEMO(),obs=full.filter(r=>new Date(r.timestamp)<=Date.now());fullRows=obs;chartRows=full;chartInit=false;render(obs.slice(-WINDOW_HOURS),obs,{station_name:"Gießen/Wettenberg",dwd_station_id:"01639",distance:600},true);DEMO_EXTRAS();};
+el("demoBtn").onclick=()=>{const full=DEMO(),obs=full.filter(r=>new Date(r.timestamp)<=Date.now());fullRows=obs;chartRows=full;chartInit=false;stripInit=false;render(obs.slice(-WINDOW_HOURS),obs,{station_name:"Gießen/Wettenberg",dwd_station_id:"01639",distance:600},true);DEMO_EXTRAS();};
 load();
 </script>
 </body>
