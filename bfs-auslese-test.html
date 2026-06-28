@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BfS-PNG Auslese-Test</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,system-ui,sans-serif;color:#1c2432;line-height:1.5}
+  #bg{position:fixed;inset:0;z-index:0;background:#eef2f7}
+  .wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:22px 18px}
+  h1{font-size:19px;margin-bottom:6px}
+  p{font-size:14px;color:#5c6b80;margin-bottom:14px}
+  .status{font-size:22px;font-weight:800;padding:16px;border-radius:14px;text-align:center;margin:14px 0;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+  .ok{color:#1f7a3d}.bad{color:#c0392b}.wait{color:#8595a8}
+  .info{font-size:14px;background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:14px}
+  .info b{color:#1c2432}
+  img{max-width:100%;border-radius:10px;display:none;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .note{font-size:12px;color:#8595a8;margin-top:12px}
+</style></head>
+<body>
+<div id="bg"></div>
+<div class="wrap">
+  <h1>BfS-Messgrafik · Auslese-Test</h1>
+  <p>Prüft, ob die UV-Tagesgrafik des BfS (Gießen-Wettenberg) per Canvas ausgelesen werden kann. Das ist die Voraussetzung, um die echte Mess-Kurve in Zahlen zu bekommen.</p>
+  <div class="status wait" id="status">⏳ lädt Messgrafik …</div>
+  <div class="info" id="info">Test läuft. Nur online (GitHub Pages) aussagekräftig — in der App-Vorschau scheitert der externe Zugriff ohnehin.</div>
+  <img id="preview" alt="BfS-Messgrafik">
+  <div class="note">Quelle: uvi.bfs.de · Cache-Buster gegen veraltete Bilder aktiv.</div>
+</div>
+<script>
+  var URL_="https://uvi.bfs.de/Tagesgrafiken/EEr_Giessen-Wettenberg_today.png?ts="+Date.now();
+  var st=document.getElementById("status"),info=document.getElementById("info"),prev=document.getElementById("preview");
+  var img=new Image();
+  img.crossOrigin="anonymous";
+  img.onload=function(){
+    prev.src=img.src; prev.style.display="block";
+    try{
+      var cv=document.createElement("canvas");cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+      var ctx=cv.getContext("2d");ctx.drawImage(img,0,0);
+      var d=ctx.getImageData(0,0,1,1).data; // wirft SecurityError bei tainted canvas
+      // grobe Plausibilitätsprobe: zähle „schwarze" Kurvenpixel
+      var full=ctx.getImageData(0,0,cv.width,cv.height).data, dark=0;
+      for(var i=0;i<full.length;i+=4){if(full[i]<60&&full[i+1]<60&&full[i+2]<60)dark++;}
+      st.textContent="✅ Auslesbar!";st.className="status ok";
+      info.innerHTML="Die Pixel der BfS-Grafik sind lesbar — die Mess-Kurve lässt sich extrahieren.<br><br>"+
+        "Bildgröße: <b>"+img.naturalWidth+" × "+img.naturalHeight+" px</b><br>"+
+        "dunkle (Kurven-)Pixel gefunden: <b>"+dark.toLocaleString("de-DE")+"</b><br><br>"+
+        "→ <b>Dein Plan ist machbar.</b> Nächster Schritt: Achsen kalibrieren und Kurve in UV-Werte umrechnen.";
+    }catch(e){
+      st.textContent="❌ CORS blockiert";st.className="status bad";
+      info.innerHTML="Das Bild lädt zwar, aber die Pixel sind gesperrt (tainted canvas):<br><b>"+e.message+"</b><br><br>"+
+        "→ Die echte Mess-Kurve kann <b>nicht</b> in Zahlen geholt werden. Dann bleibt nur die Bewölkungs-Schätzung (robust) — oder ein reines Linien-Overlay ohne echtes Auslesen.";
+    }
+  };
+  img.onerror=function(){
+    st.textContent="❌ Bild nicht geladen";st.className="status bad";
+    info.innerHTML="Die Grafik konnte nicht geladen werden (Netzwerk oder Server). Bitte online auf GitHub Pages erneut testen.";
+  };
+  img.src=URL_;
+</script>
+</body></html>
