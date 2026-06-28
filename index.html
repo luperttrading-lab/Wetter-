@@ -197,7 +197,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.47</span>
+      <span class="ver">v1.48</span>
     </div>
   </header>
 
@@ -571,6 +571,20 @@ function recenterChart(){const g=chartGeom;if(!g)return;const span=g.W-g.viewW;i
 function tile(k,val,unit,sub){return `<div class="tile"><div class="k">${k}</div><div class="val">${val}${unit?` <small>${unit}</small>`:""}</div>${sub?`<div class="sub">${sub}</div>`:""}</div>`;}
 function compass(deg){if(deg==null)return"";const r=deg*Math.PI/180,x=18+Math.sin(r)*10.5,y=18-Math.cos(r)*10.5;
   return `<svg width="30" height="30" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14.5" fill="#f4f7fb" stroke="#e3e9f1" stroke-width="2"/><line x1="18" y1="18" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#2f86cf" stroke-width="3" stroke-linecap="round"/><circle cx="18" cy="18" r="2.4" fill="#5c6b80"/></svg>`;}
+/* Windrichtungs-Streuung: zirkuläre Statistik über die letzten 12 h, mit Windstärke gewichtet */
+function windSpread(){if(!Array.isArray(fullRows))return null;const now=Date.now(),t0=now-12*3600000;let C=0,S=0,W=0;
+  for(const r of fullRows){const t=new Date(r.timestamp).getTime();if(t<t0||t>now)continue;const d=r.wind_direction;if(d==null||isNaN(d))continue;
+    const w=Math.max(r.wind_speed!=null?r.wind_speed:0,0.1),rad=d*Math.PI/180;C+=w*Math.cos(rad);S+=w*Math.sin(rad);W+=w;}
+  if(W<=0)return null;C/=W;S/=W;const R=Math.hypot(C,S);
+  return {mean:(Math.atan2(S,C)*180/Math.PI+360)%360,R,sig:Math.sqrt(-2*Math.log(Math.max(R,1e-6)))*180/Math.PI};}
+/* Windrose: durchgehender Pfeil (Punkt=Herkunft, Spitze=Wehrichtung), Fächer vorne ab σ≥10°, Apple-Kompassring */
+function windRose(deg,sig,sz){if(deg==null||isNaN(deg))return "";const pt=(d,rad)=>{const r=d*Math.PI/180;return [18+Math.sin(r)*rad,18-Math.cos(r)*rad];};
+  let tk="";for(let a=0;a<360;a+=6){const big=a%90==0,r1=big?12.2:13.2,r2=14.4,[x1,y1]=pt(a,r1),[x2,y2]=pt(a,r2);tk+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#c2ccd9" stroke-width="${big?1:0.5}"/>`;}
+  let lb="";for(const[a,t] of [[0,"N"],[90,"O"],[180,"S"],[270,"W"]]){const[x,y]=pt(a,9.3);lb+=`<text x="${x.toFixed(1)}" y="${(y+1.2).toFixed(1)}" font-size="3.4" text-anchor="middle" fill="#9aa7b8" font-weight="700">${t}</text>`;}
+  const wd=deg+180;let fan="";if(sig!=null&&sig>=10){const s=Math.min(sig,170),[fx1,fy1]=pt(wd-s,13.8),[fx2,fy2]=pt(wd+s,13.8),lg=2*s>180?1:0;fan=`<path d="M18,18 L${fx1.toFixed(1)},${fy1.toFixed(1)} A13.8,13.8 0 ${lg},1 ${fx2.toFixed(1)},${fy2.toFixed(1)} Z" fill="#2f86cf" opacity="0.18"/>`;}
+  const Ro=11.5,hl=4.5,hw=4.5,[hx,hy]=pt(deg,Ro),[wx,wy]=pt(wd,Ro),[bx,by]=pt(wd,Ro-hl),perp=(wd+90)*Math.PI/180,dx=Math.sin(perp),dy=-Math.cos(perp),w1x=bx+dx*hw/2,w1y=by+dy*hw/2,w2x=bx-dx*hw/2,w2y=by-dy*hw/2;
+  const arrow=`<line x1="${hx.toFixed(1)}" y1="${hy.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}" stroke="#2f86cf" stroke-width="2.2" stroke-linecap="round"/><circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="2.3" fill="#2f86cf"/><polygon points="${wx.toFixed(1)},${wy.toFixed(1)} ${w1x.toFixed(1)},${w1y.toFixed(1)} ${w2x.toFixed(1)},${w2y.toFixed(1)}" fill="#2f86cf"/>`;
+  return `<svg width="${sz||58}" height="${sz||58}" viewBox="0 0 36 36" style="flex-shrink:0"><circle cx="18" cy="18" r="14.5" fill="#f4f7fb" stroke="#e3e9f1" stroke-width="1.5"/>${tk}${fan}${lb}${arrow}</svg>`;}
 function euDstOffset(date){const y=date.getUTCFullYear();
   const marLastSun=new Date(Date.UTC(y,2,31-new Date(Date.UTC(y,2,31)).getUTCDay(),1)),
         octLastSun=new Date(Date.UTC(y,9,31-new Date(Date.UTC(y,9,31)).getUTCDay(),1));
@@ -610,7 +624,10 @@ function sunArc(d){const W=360,H=86,cx0=22,cx1=W-22,cy=H-12,ryE=52,fullPx=cx1-cx
 
 function renderTiles(s,d){
   const g=el("grid");
-  const windSub=`${compass(s.dir)} ${s.dir!=null?"aus "+dirName(s.dir):""}${s.gust!=null?" · Böen "+Math.round(s.gust):""}`;
+  const wsp=windSpread();
+  const spreadTxt=wsp==null?"":(wsp.sig<10?", konstant":wsp.sig<25?", wechselnd":", stark wechselnd");
+  const windSub2=`${s.dir!=null?"aus "+dirName(s.dir)+spreadTxt:""}${s.gust!=null?" · Böen "+Math.round(s.gust):""}`;
+  const windRoseSvg=windRose(s.dir,wsp?wsp.sig:0,58);
   const pTrend=d.press3!=null&&s.press!=null?(s.press-d.press3):null;
   const pArrow=pTrend==null?"":(pTrend>0.6?"↗ steigend":pTrend<-0.6?"↘ fallend":"→ gleichbleibend");
   const pr=pTrend!=null?Math.round(pTrend):null;
@@ -625,7 +642,7 @@ function renderTiles(s,d){
   const cmpCol=dT==null?"#9aa7b8":(dT>0.5?"#d8472f":dT<-0.5?"#2f86cf":"#5c6b80");
 
   g.innerHTML=
-    tile("Wind &amp; Böen",s.wind!=null?Math.round(s.wind):"–","km/h",windSub)+
+    `<div class="tile wide"><div style="display:flex;align-items:center;justify-content:space-between;gap:14px"><div><div class="k">Wind &amp; Böen</div><div class="val" style="margin-top:7px">${s.wind!=null?Math.round(s.wind):"–"} <small>km/h</small></div>${windSub2?`<div class="sub">${windSub2}</div>`:""}</div>${windRoseSvg}</div></div>`+
     tile("Luftdruck",s.press!=null?Math.round(s.press):"–","hPa",pSub)+
     tile("Taupunkt",s.dew!=null?Math.round(s.dew)+"°":"–","",dewSub)+
     tile("Luftfeuchte",s.rh!=null?Math.round(s.rh):"–","%",s.rh!=null?(s.rh<35?"trocken":s.rh<65?"moderat":"feucht"):"")+
