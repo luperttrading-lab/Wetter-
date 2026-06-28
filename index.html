@@ -32,7 +32,7 @@
   .place{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
   .place small{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-top:4px;letter-spacing:0}
   .reload{width:40px;height:40px;border-radius:13px;background:rgba(255,255,255,.72);border:1px solid var(--line);display:grid;place-items:center;box-shadow:var(--shadow-s);backdrop-filter:blur(8px);cursor:pointer}
-  .reload svg{width:19px;height:19px;stroke:var(--muted);fill:none}
+  .reload svg{width:27px;height:27px}
   .reload.spin svg{animation:spin .9s linear infinite}
   .ver{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -194,9 +194,9 @@
     <div class="place">Gießen&thinsp;/&thinsp;Wettenberg<small id="stationTxt">Live · DWD-Station</small></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
       <div class="reload" id="refresh" role="button" aria-label="Aktualisieren">
-        <svg viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        <svg viewBox="-1 -1 34 34" fill="none"><path d="M6.50 9.35 A11.60 11.60 0 0 1 27.56 14.99" stroke="#4DA8E0" stroke-width="4.4"/><path d="M27.49 17.61 L32.55 14.26 L22.52 15.31 Z" fill="#4DA8E0"/><path d="M25.50 22.65 A11.60 11.60 0 0 1 4.44 17.01" stroke="#D43E2A" stroke-width="4.4"/><path d="M4.51 14.39 L-0.55 17.74 L9.48 16.69 Z" fill="#D43E2A"/></svg>
       </div>
-      <span class="ver">v1.37</span>
+      <span class="ver">v1.38</span>
     </div>
   </header>
 
@@ -877,7 +877,7 @@ function recenterStrip(){const h=el("strip");const nowEl=h.querySelector(".col.n
   s.addEventListener("wheel",()=>{stripUserScrolled=true;},{passive:true});
   s.addEventListener("dblclick",recenterStrip);
   s.addEventListener("scroll",()=>{if(!_sjRAF)_sjRAF=requestAnimationFrame(()=>{_sjRAF=0;updateStripJump();});},{passive:true});})();
-const REFRESH='<svg viewBox="0 0 32 32" fill="none"><path d="M6.91 10.75 A10.5 10.5 0 0 1 26.14 18.72" stroke="#4DA8E0" stroke-width="4"/><path d="M25.36 20.77 L29.98 19.23 L22.48 17.5 Z" fill="#4DA8E0"/><path d="M25.09 21.25 A10.5 10.5 0 0 1 5.86 13.28" stroke="#D43E2A" stroke-width="4"/><path d="M6.64 11.23 L2.02 12.77 L9.52 14.5 Z" fill="#D43E2A"/></svg>';
+const REFRESH='<svg viewBox="-1 -1 34 34" fill="none"><path d="M6.50 9.35 A11.60 11.60 0 0 1 27.56 14.99" stroke="#4DA8E0" stroke-width="4.4"/><path d="M27.49 17.61 L32.55 14.26 L22.52 15.31 Z" fill="#4DA8E0"/><path d="M25.50 22.65 A11.60 11.60 0 0 1 4.44 17.01" stroke="#D43E2A" stroke-width="4.4"/><path d="M4.51 14.39 L-0.55 17.74 L9.48 16.69 Z" fill="#D43E2A"/></svg>';
 let _sjRAF=0;
 function updateChartJump(){}
 function updateStripJump(){}
