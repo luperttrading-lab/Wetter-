@@ -197,7 +197,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.42</span>
+      <span class="ver">v1.43</span>
     </div>
   </header>
 
@@ -251,7 +251,12 @@ const LAT=50.6034, LON=8.6516, WINDOW_HOURS=72, CHART_PAST_H=72, CHART_FUT_H=48,
 const OLD_MIN=90;
 
 /* ---------- thermische Skala (nur Zahl/Akzent) ---------- */
-const STOPS=[[-16,48,18,59],[-12,65,69,171],[-8,70,116,236],[-4,50,143,223],[0,22,166,170],[4,26,172,121],[8,64,165,71],[12,101,155,36],[16,133,148,33],[20,169,138,40],[24,204,125,36],[28,235,96,20],[32,217,56,6],[36,177,25,1],[40,122,4,3]];
+/* === Temperatur-Farbskala (umschaltbar) ===
+   Aktiv ist die per STOPS gewählte Skala. Zum Zurückstellen auf die
+   ursprüngliche App-Skala einfach unten  STOPS=STOPS_APP  setzen. */
+const STOPS_APP=[[-16,48,18,59],[-12,65,69,171],[-8,70,116,236],[-4,50,143,223],[0,22,166,170],[4,26,172,121],[8,64,165,71],[12,101,155,36],[16,133,148,33],[20,169,138,40],[24,204,125,36],[28,235,96,20],[32,217,56,6],[36,177,25,1],[40,122,4,3]];
+const STOPS_MAG=[[-16,6,24,190],[-12,23,60,196],[-8,39,94,196],[-4,58,130,198],[0,75,163,200],[4,92,193,59],[8,148,215,67],[12,247,212,72],[16,242,184,64],[20,240,151,56],[24,237,110,46],[28,233,60,36],[32,195,41,28],[36,153,30,18],[40,197,42,120],[44,231,52,225]];
+const STOPS=STOPS_MAG;   /* aktiv: Magenta  ·  zurück: STOPS_APP */
 function thermal(t){if(t==null||isNaN(t))return[120,132,150];if(t<=STOPS[0][0])return STOPS[0].slice(1);if(t>=STOPS.at(-1)[0])return STOPS.at(-1).slice(1);
   for(let i=0;i<STOPS.length-1;i++){const a=STOPS[i],b=STOPS[i+1];if(t>=a[0]&&t<=b[0]){const f=(t-a[0])/(b[0]-a[0]);return[a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f,a[3]+(b[3]-a[3])*f];}}return STOPS.at(-1).slice(1);}
 const rgb=c=>`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`,rgba=(c,a)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
