@@ -198,7 +198,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.54</span>
+      <span class="ver">v1.52</span>
     </div>
   </header>
 
@@ -740,7 +740,7 @@ function renderAlerts(j){const box=el("alerts");box.innerHTML="";let al=(j&&j.al
 function renderNowcast(j){
   const sec=el("nowcastSec"),fr=(j&&j.radar)||[];if(!fr.length){sec.classList.add("hidden");return;}
   const now=Date.now();
-  let series=fr.map(f=>{let m=0;const p=f.precipitation_5;if(Array.isArray(p)){for(const v of p)if(typeof v==="number"&&v>m)m=v;}return {t:new Date(f.timestamp).getTime(),mmh:m*0.01*12};}).filter(s=>s.t>=now-6*60000).slice(0,25);
+  let series=fr.map(f=>{let m=0;const scan=a=>{if(Array.isArray(a)){for(const v of a)scan(v);}else if(typeof a==="number"&&a>m)m=a;};scan(f.precipitation_5);return {t:new Date(f.timestamp).getTime(),mmh:m*0.01*12};}).filter(s=>s.t>=now-6*60000).slice(0,25);
   if(series.length<2){sec.classList.add("hidden");return;}
   const TH=0.1,peak=Math.max(...series.map(s=>s.mmh));
   const f1=v=>v.toLocaleString("de-DE",{maximumFractionDigits:1});
@@ -755,24 +755,23 @@ function renderNowcast(j){
   sec.classList.remove("hidden");
 }
 
-/* --- Render: Regen-Stundenprognose (nächste 24 Std, MOSMIX aus chartRows) --- */
-function renderRainHours(){
+/* --- Render: Regen-Stundenprognose (nächste 24 Std, Open-Meteo ICON-D2) --- */
+function renderRainHours(d){
   const sec=el("rainHrSec");if(!sec)return;
-  const rows=chartRows||fullRows||[],now=Date.now();
-  // stündliche Prognosewerte ab jetzt; nach voller Stunde deduplizieren
-  const raw=rows.map(r=>({t:new Date(r.timestamp).getTime(),mm:(r.precipitation!=null&&!isNaN(r.precipitation))?Math.max(0,+r.precipitation):0}))
-    .filter(h=>h.t>=now-30*60000&&h.t<=now+24.5*3600000).sort((a,b)=>a.t-b.t);
-  const seen=new Set(),H=[];for(const h of raw){const k=Math.round(h.t/3600000);if(seen.has(k))continue;seen.add(k);H.push(h);if(H.length>=24)break;}
+  const h=d&&d.hourly;if(!h||!h.time||!h.precipitation){sec.classList.add("hidden");return;}
+  const now=Date.now();
+  const H=h.time.map((t,i)=>({t:new Date(t).getTime(),mm:Math.max(0,+h.precipitation[i]||0),pop:h.precipitation_probability?h.precipitation_probability[i]:null}))
+    .filter(x=>x.t>=now-30*60000&&x.t<=now+24.5*3600000).sort((a,b)=>a.t-b.t).slice(0,24);
   if(H.length<4){sec.classList.add("hidden");return;}
-  const TH=0.1,total=H.reduce((s,h)=>s+h.mm,0),peak=Math.max(...H.map(h=>h.mm));
+  const TH=0.1,total=H.reduce((s,x)=>s+x.mm,0),peak=Math.max(...H.map(x=>x.mm)),pop=Math.max(...H.map(x=>x.pop||0));
   const f1=v=>v.toLocaleString("de-DE",{maximumFractionDigits:1});
   const hLbl=t=>new Date(t).getHours()+" Uhr";
-  let summary,detail;const fr=H.findIndex(h=>h.mm>=TH);
-  if(peak<TH){summary="Trocken";detail="die nächsten 24 Std kein Regen";}
+  let summary,detail;const fr=H.findIndex(x=>x.mm>=TH);
+  if(peak<TH){summary="Trocken";detail=pop>=30?`kein nennenswerter Regen · bis ${pop}% Wahrsch.`:"die nächsten 24 Std kein Regen";}
   else if(fr<=0){summary="Regen aktuell";detail=`~${f1(total)} mm · Spitze ${f1(peak)} mm/h`;}
   else{summary=`Regen ab ${hLbl(H[fr].t)}`;detail=`~${f1(total)} mm gesamt · Spitze ${f1(peak)} mm/h`;}
   const sc=Math.max(peak,0.5);let prevD=new Date(H[0].t).getDate();
-  const bars=H.map(h=>{const d=new Date(h.t),db=d.getDate()!==prevD;prevD=d.getDate();const ht=h.mm<TH?2:Math.max(3,Math.round(h.mm/sc*46));return `<div class="bar${h.mm<TH?" dry":""}${db?" daybreak":""}" style="height:${ht}px"></div>`;}).join("");
+  const bars=H.map(x=>{const dd=new Date(x.t),db=dd.getDate()!==prevD;prevD=dd.getDate();const ht=x.mm<TH?2:Math.max(3,Math.round(x.mm/sc*46));return `<div class="bar${x.mm<TH?" dry":""}${db?" daybreak":""}" style="height:${ht}px"></div>`;}).join("");
   const last=H.length-1,idx=[0,Math.round(last*0.25),Math.round(last*0.5),Math.round(last*0.75),last];
   const ax=idx.map((ix,i)=>`<span>${i===0?"jetzt":hLbl(H[ix].t)}</span>`).join("");
   el("rainHrCard").innerHTML=`<div class="nh"><div class="nt">${summary}</div><div class="ns">${detail}</div></div><div class="bars">${bars}</div><div class="ax">${ax}</div>`;
@@ -844,12 +843,8 @@ function drawUV(h){
   if(i0<0||i1<=i0)return;
   const dpr=Math.min(window.devicePixelRatio||1,3),W=cv.clientWidth;if(!W)return;
   // BfS-Layout: feste X-Achse 6..21, Y 0..9, Verhältnis UV-Einheit:Stunde = 1.29
-  const RATIO=1.29,yMax=9;
-  // X-Achse exakt an die BfS-PNG-Geometrie angeglichen: Plotbereich 6..21 Uhr liegt
-  // bei 15.68%..86.76% der Breite (aus BfS-PNG pixel-vermessen) -> Stunden fluchten mit der unteren Grafik
-  const gx0=Math.round(0.1568*W),gx1=Math.round(0.8676*W),plotW=gx1-gx0;
-  const scaleW=17,scaleX=Math.max(2,gx0-4-scaleW);// Farbskala direkt links am Plot (wie BfS)
-  const gy0=12,plotH=Math.round(yMax*RATIO*plotW/15),gy1=gy0+plotH,Hpx=gy1+16;
+  const scaleX=2,scaleW=17,gx0=scaleX+scaleW+4,gx1=W-6,plotW=gx1-gx0,RATIO=1.29,yMax=9;
+  const gy0=9,plotH=Math.round(yMax*RATIO*plotW/15),gy1=gy0+plotH,Hpx=gy1+16;
   cv.style.height=Hpx+"px";const H=Hpx;
   cv.width=W*dpr;cv.height=H*dpr;const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
   const day=new Date(tms[i0]);day.setHours(0,0,0,0);const t6=day.getTime()+6*3600e3,t21=day.getTime()+21*3600e3;
@@ -857,25 +852,23 @@ function drawUV(h){
   const smooth=(arr,t)=>{for(let i=i0;i<i1;i++){if(t>=tms[i]&&t<=tms[i+1]){const p1=arr[i];if(p1==null)return null;const p2=(arr[i+1]==null)?p1:arr[i+1];const p0=(i>i0&&arr[i-1]!=null)?arr[i-1]:p1,p3=(i+2<=i1&&arr[i+2]!=null)?arr[i+2]:p2;let u=(t-tms[i])/(tms[i+1]-tms[i]),u2=u*u,u3=u2*u;return 0.5*(2*p1+(-p0+p2)*u+(2*p0-5*p1+4*p2-p3)*u2+(-p0+3*p1-3*p2+p3)*u3);}}return null;};
   const csAt=t=>{const v=smooth(cs,t);return v==null?0:Math.max(0,v);};
   const realAt=t=>{const v=smooth(real,t);return v==null?null:Math.max(0,v);};
-  // Farbskala links – ragt oben über 9 und unten unter 0 hinaus (Zahlen kleben nicht am Rand)
-  const ovS=9;
-  for(let yy=-ovS;yy<=plotH+ovS;yy++){const uv=yMax*(1-yy/plotH);x.fillStyle=uvFine(uv);x.fillRect(scaleX,gy0+yy,scaleW,1.3);}
+  // Farbskala links (UV 0..9) mit Zahlen drin
+  for(let yy=0;yy<=plotH;yy++){const uv=yMax*(1-yy/plotH);x.fillStyle=uvFine(uv);x.fillRect(scaleX,gy0+yy,scaleW,1.3);}
   x.font="700 9px -apple-system,system-ui,sans-serif";x.textAlign="center";x.textBaseline="middle";
-  for(let g=0;g<=yMax;g++){const yy=Y(g);x.lineWidth=1.5;x.strokeStyle="rgba(255,255,255,.6)";x.strokeText(g,scaleX+scaleW/2,yy);x.fillStyle="#11181f";x.fillText(g,scaleX+scaleW/2,yy);}
+  for(let g=0;g<=yMax;g++){const yy=Y(g);x.lineWidth=2.6;x.strokeStyle="rgba(255,255,255,.9)";x.strokeText(g,scaleX+scaleW/2,yy);x.fillStyle="#1c2432";x.fillText(g,scaleX+scaleW/2,yy);}
   // Gridlines
   x.strokeStyle="rgba(15,23,42,.05)";x.lineWidth=1;for(let g=1;g<yMax;g++){const yy=Y(g);x.beginPath();x.moveTo(gx0,yy);x.lineTo(gx1,yy);x.stroke();}
   // X-Achse jede Stunde 6..21
-  x.fillStyle="#1c2432";x.font="700 7.5px -apple-system,system-ui,sans-serif";x.textBaseline="top";x.textAlign="center";
+  x.fillStyle="#9aa7b8";x.font="7.5px -apple-system,system-ui,sans-serif";x.textBaseline="top";x.textAlign="center";
   for(let hh=6;hh<=21;hh++){const xx=X(day.getTime()+hh*3600e3);x.fillText(hh,xx,gy1+4);}
   // Säulen: Höhe=real bis jetzt, Farbe=Potenzial
   const now=Date.now(),step=2.4,bw=1.9;
   for(let px=gx0;px<gx1;px+=step){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);if(t>now)break;const rv=realAt(t);if(rv==null||rv<=0.03)continue;const top=Y(rv);x.globalAlpha=.92;x.fillStyle=uvFine(csAt(t));x.fillRect(px,top,Math.min(bw,gx1-px),gy1-top);}
   x.globalAlpha=1;
-  // dicke clear-sky-Glocke (Spline) – durchgehend bis 21 Uhr (gx1), auch wenn UV abends <0.05 fällt
-  const csBell=t=>{for(let i=0;i<cs.length-1;i++){if(t>=tms[i]&&t<=tms[i+1]){const p1=cs[i]||0,p2=cs[i+1]||0,p0=(i>0?cs[i-1]:p1)||0,p3=(i+2<cs.length?cs[i+2]:p2)||0;const u=(t-tms[i])/(tms[i+1]-tms[i]),u2=u*u,u3=u2*u;return Math.max(0,0.5*(2*p1+(-p0+p2)*u+(2*p0-5*p1+4*p2-p3)*u2+(-p0+3*p1-3*p2+p3)*u3));}}return 0;};
+  // dicke clear-sky-Glocke (Spline, 6..21)
   x.lineJoin="round";x.lineCap="round";x.lineWidth=3;x.strokeStyle="#3a4453";x.beginPath();let _gf=true;
-  const pxA=Math.max(gx0,X(tms[i0])),pxB=gx1;
-  for(let px=pxA;px<=pxB;px+=1.5){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);const uv=csBell(t);if(_gf){x.moveTo(px,Y(uv));_gf=false;}else x.lineTo(px,Y(uv));}x.stroke();
+  const pxA=Math.max(gx0,X(tms[i0])),pxB=Math.min(gx1,X(tms[i1]));
+  for(let px=pxA;px<=pxB;px+=1.5){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);const uv=csAt(t);if(_gf){x.moveTo(px,Y(uv));_gf=false;}else x.lineTo(px,Y(uv));}x.stroke();
   // jetzt-Marker
   if(now>=t6&&now<=t21){const xn=X(now);x.strokeStyle="rgba(23,32,46,.3)";x.setLineDash([2,2]);x.lineWidth=1;x.beginPath();x.moveTo(xn,gy0);x.lineTo(xn,gy1);x.stroke();x.setLineDash([]);
     const uvNow=realAt(now);if(uvNow!=null){const yn=Y(uvNow);x.beginPath();x.arc(xn,yn,4.5,0,7);x.fillStyle=uvFine(csAt(now));x.fill();x.lineWidth=1.6;x.strokeStyle="#fff";x.stroke();}
@@ -886,16 +879,14 @@ function drawUV(h){
   x.setLineDash([4,3]);x.lineWidth=1.6;x.strokeStyle=gC;x.beginPath();x.moveTo(gx0,y3);x.lineTo(gx1,y3);x.stroke();x.setLineDash([]);
   x.fillStyle=gC;x.font="700 8px -apple-system,system-ui,sans-serif";x.textBaseline="bottom";x.textAlign="right";x.fillText("Vit-D",gx1,y3-3);
   cross.forEach(t=>{const cxp=X(t);if(cxp<gx0||cxp>gx1)return;x.beginPath();x.arc(cxp,y3,3.2,0,7);x.fillStyle=gC;x.fill();x.lineWidth=1.3;x.strokeStyle="#fff";x.stroke();});
-  // schwarze Box außen rum (Plotrahmen, wie BfS)
-  x.strokeStyle="#2a3340";x.lineWidth=1.2;x.strokeRect(gx0,gy0,plotW,plotH);
 }
 
 
 /* --- Lader (parallel, fehlertolerant) --- */
 function loadExtras(){
   renderAirGrid(null); // Mond sofort, Rest folgt
-  renderRainHours();   // Regen-Stundenprognose aus bereits geladenen chartRows (kein extra Fetch)
   const ll=`latitude=${LAT}&longitude=${LON}`;
+  fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&hourly=precipitation,precipitation_probability&forecast_days=2&timezone=Europe%2FBerlin`).then(renderRainHours).catch(e=>{el("rainHrSec").classList.add("hidden");console.warn("rainhr",e.message);});
   fetchJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${ll}&current=uv_index,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,ragweed_pollen&hourly=uv_index,uv_index_clear_sky&forecast_days=1&timezone=Europe%2FBerlin`).then(renderAirGrid).catch(e=>console.warn("air",e.message));
   fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&forecast_days=16&timezone=Europe%2FBerlin`).then(renderForecast).catch(e=>{el("fcSec").classList.add("hidden");console.warn("fc",e.message);});
   fetchJSON(`https://api.brightsky.dev/radar?lat=${LAT}&lon=${LON}&distance=1000&format=plain&tz=Europe/Berlin&date=${encodeURIComponent(new Date().toISOString())}`,11000).then(renderNowcast).catch(e=>{el("nowcastSec").classList.add("hidden");console.warn("radar",e.message);});
@@ -909,7 +900,8 @@ function DEMO_EXTRAS(){
     {event_de:"Starke Hitze",severity:"moderate",headline_de:"Amtliche WARNUNG vor HITZE."}]});
   const radar=[...Array(25)].map((_,i)=>{const v=(i>=6&&i<15)?[4,12,22,30,28,20,11,5,2][i-6]:0;return {timestamp:new Date(Date.now()+i*300000).toISOString(),precipitation_5:[v||0]};});
   renderNowcast({radar});
-  renderRainHours();
+  const dt=[],dp=[],dpp=[];for(let i=0;i<26;i++){dt.push(new Date(Date.now()+i*3600000).toISOString());const v=(i>=3&&i<10)?[0.3,1.2,2.6,1.9,0.8,0.3,0.1][i-3]:0;dp.push(v);dpp.push(v>0.05?75:15);}
+  renderRainHours({hourly:{time:dt,precipitation:dp,precipitation_probability:dpp}});
   const ymdStr=new Date().toLocaleDateString("en-CA"),times=[],uvCS=[],uvAC=[];
   for(let i=0;i<24;i++){times.push(`${ymdStr}T${String(i).padStart(2,"0")}:00`);const day=Math.max(0,Math.sin(Math.PI*(i-5.3)/16.6)),cs=Math.round(8.3*day*10)/10;uvCS.push(cs);uvAC.push(Math.round(cs*((i>=14&&i<=18)?0.5:0.9)*10)/10);}
   const hNow=new Date().getHours();
