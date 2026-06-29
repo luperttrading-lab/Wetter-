@@ -198,7 +198,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.53</span>
+      <span class="ver">v1.54</span>
     </div>
   </header>
 
@@ -871,10 +871,11 @@ function drawUV(h){
   const now=Date.now(),step=2.4,bw=1.9;
   for(let px=gx0;px<gx1;px+=step){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);if(t>now)break;const rv=realAt(t);if(rv==null||rv<=0.03)continue;const top=Y(rv);x.globalAlpha=.92;x.fillStyle=uvFine(csAt(t));x.fillRect(px,top,Math.min(bw,gx1-px),gy1-top);}
   x.globalAlpha=1;
-  // dicke clear-sky-Glocke (Spline, 6..21)
+  // dicke clear-sky-Glocke (Spline) – durchgehend bis 21 Uhr (gx1), auch wenn UV abends <0.05 fällt
+  const csBell=t=>{for(let i=0;i<cs.length-1;i++){if(t>=tms[i]&&t<=tms[i+1]){const p1=cs[i]||0,p2=cs[i+1]||0,p0=(i>0?cs[i-1]:p1)||0,p3=(i+2<cs.length?cs[i+2]:p2)||0;const u=(t-tms[i])/(tms[i+1]-tms[i]),u2=u*u,u3=u2*u;return Math.max(0,0.5*(2*p1+(-p0+p2)*u+(2*p0-5*p1+4*p2-p3)*u2+(-p0+3*p1-3*p2+p3)*u3));}}return 0;};
   x.lineJoin="round";x.lineCap="round";x.lineWidth=3;x.strokeStyle="#3a4453";x.beginPath();let _gf=true;
-  const pxA=Math.max(gx0,X(tms[i0])),pxB=Math.min(gx1,X(tms[i1]));
-  for(let px=pxA;px<=pxB;px+=1.5){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);const uv=csAt(t);if(_gf){x.moveTo(px,Y(uv));_gf=false;}else x.lineTo(px,Y(uv));}x.stroke();
+  const pxA=Math.max(gx0,X(tms[i0])),pxB=gx1;
+  for(let px=pxA;px<=pxB;px+=1.5){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);const uv=csBell(t);if(_gf){x.moveTo(px,Y(uv));_gf=false;}else x.lineTo(px,Y(uv));}x.stroke();
   // jetzt-Marker
   if(now>=t6&&now<=t21){const xn=X(now);x.strokeStyle="rgba(23,32,46,.3)";x.setLineDash([2,2]);x.lineWidth=1;x.beginPath();x.moveTo(xn,gy0);x.lineTo(xn,gy1);x.stroke();x.setLineDash([]);
     const uvNow=realAt(now);if(uvNow!=null){const yn=Y(uvNow);x.beginPath();x.arc(xn,yn,4.5,0,7);x.fillStyle=uvFine(csAt(now));x.fill();x.lineWidth=1.6;x.strokeStyle="#fff";x.stroke();}
