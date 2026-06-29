@@ -1,8 +1,8 @@
 {
   "datum": "2026-06-29",
   "summe_mm": 12.68,
-  "stunden_ok": 13,
-  "stunden_erwartet": 13,
+  "stunden_ok": 18,
+  "stunden_erwartet": 18,
   "stunden": [
     {
       "stunde": "01:00",
@@ -55,9 +55,109 @@
     {
       "stunde": "13:00",
       "mm": 0.0
+    },
+    {
+      "stunde": "14:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "15:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "16:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "17:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "18:00",
+      "mm": 0.0
     }
   ],
-  "aktualisiert": "2026-06-29T11:57:46+00:00",
+  "umgebung_3x3": [
+    [
+      {
+        "pixel": [
+          410,
+          424
+        ],
+        "mm": 15.1,
+        "eigenes": false
+      },
+      {
+        "pixel": [
+          410,
+          425
+        ],
+        "mm": 12.5,
+        "eigenes": false
+      },
+      {
+        "pixel": [
+          410,
+          426
+        ],
+        "mm": 12.6,
+        "eigenes": false
+      }
+    ],
+    [
+      {
+        "pixel": [
+          409,
+          424
+        ],
+        "mm": 13.2,
+        "eigenes": false
+      },
+      {
+        "pixel": [
+          409,
+          425
+        ],
+        "mm": 12.8,
+        "eigenes": true
+      },
+      {
+        "pixel": [
+          409,
+          426
+        ],
+        "mm": 11.2,
+        "eigenes": false
+      }
+    ],
+    [
+      {
+        "pixel": [
+          408,
+          424
+        ],
+        "mm": 11.6,
+        "eigenes": false
+      },
+      {
+        "pixel": [
+          408,
+          425
+        ],
+        "mm": 10.7,
+        "eigenes": false
+      },
+      {
+        "pixel": [
+          408,
+          426
+        ],
+        "mm": 9.7,
+        "eigenes": false
+      }
+    ]
+  ],
+  "aktualisiert": "2026-06-29T16:29:40+00:00",
   "quelle": "DWD RADOLAN-RW (1 km, stationsgeeicht)",
   "methode": "bilinear, Erlental 50.6480N 8.6741E"
 }
