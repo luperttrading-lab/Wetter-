@@ -86,5 +86,9 @@
   ],
   "aktualisiert": "2026-06-29T22:46:18+00:00",
   "quelle": "DWD RADOLAN-RW (1 km, stationsgeeicht)",
-  "methode": "bilinear, Erlental 50.6480N 8.6741E"
+  "methode": "bilinear, Erlental 50.6480N 8.6741E",
+  "letzter_regen": {
+    "datum": "2026-06-29",
+    "mm": 12.68
+  }
 }
