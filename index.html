@@ -243,7 +243,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.71</span>
+      <span class="ver">v1.72</span>
     </div>
   </header>
 
@@ -1126,7 +1126,7 @@ function DEMO_EXTRAS(){
 /* ===== ISS-Modul ===== */
 /* ===================== ISS-Überflüge (SGP4 via satellite.js) ===================== */
 const ISS_LAT=50.6479651, ISS_LON=8.6740943, ISS_ALT=0.2, ISS_AU=149597870.7, ISS_RE=6371;
-let _issSat=null, _issPasses=null, _issTimer=null;
+let _issSat=null, _issPasses=null, _issTimer=null, _issClouds=null;
 function _issObs(){const S=window.satellite;return {latitude:S.degreesToRadians(ISS_LAT),longitude:S.degreesToRadians(ISS_LON),height:ISS_ALT};}
 function issLook(satrec,date){
   const S=window.satellite, pv=S.propagate(satrec,date); if(!pv.position)return null;
@@ -1167,11 +1167,17 @@ function _issFinish(p){
   p.visible=p.sunAlt<-6 && p.sunlit; p.mag=issMag(p.peakRange);
   p.durSec=Math.round((p.end-p.start)/1000); return p;
 }
-/* Bewölkung (%) zur Überflugzeit aus fullRows (Bright Sky, stündlich) */
+/* Bewölkung (%) zur Überflugzeit aus eigener Open-Meteo-Stundenreihe (7 Tage, zuverlässiger als Bright-Sky-Forecast) */
 function issCloudAt(date){
-  if(!Array.isArray(fullRows))return null; let best=null,bd=1e18;
-  for(const r of fullRows){if(r.cloud_cover==null)continue;const d=Math.abs(new Date(r.timestamp)-date);if(d<bd){bd=d;best=r.cloud_cover;}}
+  if(!_issClouds||!_issClouds.length)return null; const tm=date.getTime(); let best=null,bd=1e18;
+  for(const r of _issClouds){if(r.c==null)continue;const d=Math.abs(r.t-tm);if(d<bd){bd=d;best=r.c;}}
   return bd<2*3600000?best:null;
+}
+async function fetchIssClouds(){
+  const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ISS_LAT}&longitude=${ISS_LON}&hourly=cloud_cover&forecast_days=7&timeformat=unixtime`);
+  if(!r.ok)throw new Error('clouds HTTP '+r.status);
+  const j=await r.json(), hh=j.hourly||{}; const t=hh.time||[], c=hh.cloud_cover||hh.cloudcover||[];
+  _issClouds=t.map((ts,i)=>({t:ts*1000,c:c[i]}));
 }
 function issAmpel(cloud){
   if(cloud==null)return ['#9aa7b8','—'];
@@ -1257,6 +1263,7 @@ async function loadIss(){
     el('issMain').innerHTML='<div class="iss-load">ISS-Bahn wird berechnet…</div>'; el('issList').innerHTML='';
     _issSat=await fetchIssTLE();
     _issPasses=issComputePasses(_issSat,5);
+    fetchIssClouds().then(renderIss).catch(e=>console.warn('issClouds',e.message));
     renderIss();
     if(_issTimer)clearInterval(_issTimer);
     _issTimer=setInterval(()=>{
