@@ -252,7 +252,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.84</span>
+      <span class="ver">v1.85</span>
     </div>
   </header>
 
@@ -1077,7 +1077,7 @@ function renderAirGrid(air){
     for(let i=0;i<_uc.length-1;i++){const a=_uc[i],b=_uc[i+1];if(a==null||b==null)continue;if((a<3)!==(b<3)){const f=(3-a)/(b-a);_vd.push(new Date(_ut[i]).getTime()+f*(new Date(_ut[i+1]).getTime()-new Date(_ut[i]).getTime()));}}
     let vdLine="";
     if(_vd.length>=2){const vs=new Date(_vd[0]),ve=new Date(_vd[_vd.length-1]);const vmn=Math.round((ve-vs)/60000),vh=Math.floor(vmn/60),vmin=vmn%60;const f2=t=>t.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});vdLine=`<br><b style="color:#3f9b6e">Vitamin-D-Zeit ${f2(vs)}–${f2(ve)} Uhr · Dauer ${vh}h ${String(vmin).padStart(2,"0")}min</b>`;}
-    const _daysw=`<div class="uvdaysw"><button class="${uvDayOffset===0?'on':''}" onclick="setUvDay(0)">Heute</button><button class="${uvDayOffset<0?'on':''}" onclick="setUvDay(-1)">Gestern</button></div>`;
+    const _daysw=`<div class="uvdaysw"><button class="${uvDayOffset<0?'on':''}" onclick="setUvDay(-1)">Gestern</button><button class="${uvDayOffset===0?'on':''}" onclick="setUvDay(0)">Heute</button></div>`;
     html+=`<div class="tile wide uvcard">${_daysw}<div class="uvhead"><div><div class="k">UV-Index · Wettenberg</div><div class="uvmax">max. möglich (klarer Himmel)<br><b>UV ${fmt1(pk)} · ${pkTime} Uhr</b></div></div><div class="uvbadge"><div class="uvb-top">UV<span>INDEX</span></div><div class="uvb-num" style="background:${bcol};color:${btxt}">${fmt1(uvN)}</div><div class="uvb-time">${nowTime}</div></div></div><canvas id="uvchart"></canvas><div class="uvleg"><span><i class="bars"></i>gemessen bis jetzt</span><span><i class="glock"></i>max. möglich</span></div><div class="uvnote">Säulenhöhe &amp; Farbe = reale UV (max. möglich × gemessene Bewölkung) bis jetzt · dicke Kurve = max. möglich bei klarem Himmel · ab UV 3 (grün) = Vitamin-D möglich · amtliche Messung siehe unten${vdLine}</div></div>`;
     html+=`<div class="tile wide bfscard" id="bfsCard"><div class="k">Amtlich gemessen · BfS Gießen-Wettenberg</div><div class="bfswrap"><img id="bfsUv" src="https://uvi.bfs.de/Tagesgrafiken/EEr_Giessen-Wettenberg_${uvDayOffset===0?'today':'yesterday'}.png?ts=${_bfsTs}" alt="UV-Index-Tagesverlauf der BfS-Messstation Gießen-Wettenberg" onload="var f=document.getElementById('bfsFb');if(f)f.style.display='none';if(window.drawBfsOverlay)drawBfsOverlay()" onerror="this.style.display='none';var f=document.getElementById('bfsFb');if(f)f.style.display='block'"><canvas id="bfsOvl" class="bfsovl"></canvas><div class="bfsfb" id="bfsFb">Amtliche BfS-Messgrafik – lädt nur auf der veröffentlichten Seite (online), nicht in der App-Vorschau.</div></div><div class="uvnote">Breitbandradiometer, 1-Minuten-Takt, Station 203 m · echte Messung · <b style="color:#1b3a6b">blaue Linie</b> = max. möglich (Klarsky-Modell) · Quelle: <a href="https://www.bfs.de/DE/themen/opt/uv/uv-index/aktuelle-tagesverlaeufe/_documents/giessen_node.html" target="_blank" rel="noopener">BfS</a></div></div>`;
   }
@@ -1097,7 +1097,12 @@ function drawUV(h){
   const cs=h.uv_index_clear_sky,real=h._real||[],tms=h.time.map(t=>new Date(t).getTime());
   let i0=-1,i1=-1;for(let i=0;i<cs.length;i++){if((cs[i]||0)>0.05){if(i0<0)i0=i;i1=i;}}
   if(i0<0||i1<=i0)return;
-  const dpr=Math.min(window.devicePixelRatio||1,3),W=cv.clientWidth;if(!W)return;
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  // Breite vom Eltern-Container (uvcard-Inhalt) messen, NICHT von cv.clientWidth:
+  // cv.width=W*dpr verfälscht die clientWidth des Canvas bei Folge-Aufrufen -> Plot würde zu breit.
+  // So liegen 6h/21h bei 15.68%/86.76% der echten Kartenbreite und fluchten mit dem BfS-Bild darunter.
+  const _hp=cv.parentElement,_pcs=_hp?getComputedStyle(_hp):null;
+  const W=_hp?Math.round(_hp.clientWidth-parseFloat(_pcs.paddingLeft)-parseFloat(_pcs.paddingRight)):cv.clientWidth;if(!W)return;
   // BfS-Layout: feste X-Achse 6..21, Y 0..9, Verhältnis UV-Einheit:Stunde = 1.29
   const RATIO=1.29,yMax=9;
   // X-Achse exakt an die BfS-PNG-Geometrie angeglichen: Plotbereich 6..21 Uhr liegt
@@ -1127,7 +1132,11 @@ function drawUV(h){
   for(let px=gx0;px<gx1;px+=step){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);if(t>now)break;const rv=realAt(t);if(rv==null||rv<=0.03)continue;const top=Y(rv);x.globalAlpha=1;x.fillStyle=uvFine(rv);x.fillRect(px,top,Math.min(bw,gx1-px),gy1-top);}
   x.globalAlpha=1;
   // dicke clear-sky-Glocke (Spline) – durchgehend bis 21 Uhr (gx1), auch wenn UV abends <0.05 fällt
-  const csBell=t=>{for(let i=0;i<cs.length-1;i++){if(t>=tms[i]&&t<=tms[i+1]){const p1=cs[i]||0,p2=cs[i+1]||0,p0=(i>0?cs[i-1]:p1)||0,p3=(i+2<cs.length?cs[i+2]:p2)||0;const u=(t-tms[i])/(tms[i+1]-tms[i]),u2=u*u,u3=u2*u;return Math.max(0,0.5*(2*p1+(-p0+p2)*u+(2*p0-5*p1+4*p2-p3)*u2+(-p0+3*p1-3*p2+p3)*u3));}}return 0;};
+  // PCHIP-Tangenten (monoton/shape-preserving, kein Überschwingen) – einmal vorab berechnen.
+  // Catmull-Rom überschwingt zwischen gerundeten Stundenwerten und erzeugte eine unphysikalische
+  // Delle rechts vom Gipfel; PCHIP hält die Glocke glatt und überschießt nie zwischen zwei Punkten.
+  const csM=(()=>{const n=cs.length,m=new Array(n).fill(0),d=new Array(Math.max(0,n-1));for(let i=0;i<n-1;i++){const hh=tms[i+1]-tms[i];d[i]=hh?((cs[i+1]||0)-(cs[i]||0))/hh:0;}if(n>=2){m[0]=d[0];m[n-1]=d[n-2];}for(let i=1;i<n-1;i++){if(d[i-1]*d[i]<=0)m[i]=0;else m[i]=2*d[i-1]*d[i]/(d[i-1]+d[i]);}return m;})();
+  const csBell=t=>{for(let i=0;i<cs.length-1;i++){if(t>=tms[i]&&t<=tms[i+1]){const hh=tms[i+1]-tms[i],u=(t-tms[i])/hh,u2=u*u,u3=u2*u,y0=cs[i]||0,y1=cs[i+1]||0,m0=csM[i],m1=csM[i+1];return Math.max(0,y0*(2*u3-3*u2+1)+y1*(-2*u3+3*u2)+m0*hh*(u3-2*u2+u)+m1*hh*(u3-u2));}}return 0;};
   x.lineJoin="round";x.lineCap="round";x.lineWidth=3;x.strokeStyle="#3a4453";x.beginPath();let _gf=true;
   const pxA=Math.max(gx0,X(tms[i0])),pxB=gx1;
   for(let px=pxA;px<=pxB;px+=1.5){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);const uv=csBell(t);if(_gf){x.moveTo(px,Y(uv));_gf=false;}else x.lineTo(px,Y(uv));}x.stroke();
@@ -1163,7 +1172,8 @@ function drawBfsOverlay(){
   const t6=day.getTime()+6*3600e3,t21=day.getTime()+21*3600e3;
   const gx0=BFS_X0*W,gx1=BFS_X1*W,gy9=BFS_Y9*Hh,gy0=BFS_Y0*Hh;
   const Y=u=>gy0-(gy0-gy9)*(Math.max(0,Math.min(9,u))/9);
-  const bell=t=>{for(let i=0;i<cs.length-1;i++){if(t>=tms[i]&&t<=tms[i+1]){const p1=cs[i]||0,p2=cs[i+1]||0,p0=(i>0?cs[i-1]:p1)||0,p3=(i+2<cs.length?cs[i+2]:p2)||0;const u=(t-tms[i])/(tms[i+1]-tms[i]),u2=u*u,u3=u2*u;return Math.max(0,0.5*(2*p1+(-p0+p2)*u+(2*p0-5*p1+4*p2-p3)*u2+(-p0+3*p1-3*p2+p3)*u3));}}return 0;};
+  const _bm=(()=>{const n=cs.length,m=new Array(n).fill(0),d=new Array(Math.max(0,n-1));for(let i=0;i<n-1;i++){const hh=tms[i+1]-tms[i];d[i]=hh?((cs[i+1]||0)-(cs[i]||0))/hh:0;}if(n>=2){m[0]=d[0];m[n-1]=d[n-2];}for(let i=1;i<n-1;i++){if(d[i-1]*d[i]<=0)m[i]=0;else m[i]=2*d[i-1]*d[i]/(d[i-1]+d[i]);}return m;})();
+  const bell=t=>{for(let i=0;i<cs.length-1;i++){if(t>=tms[i]&&t<=tms[i+1]){const hh=tms[i+1]-tms[i],u=(t-tms[i])/hh,u2=u*u,u3=u2*u,y0=cs[i]||0,y1=cs[i+1]||0,m0=_bm[i],m1=_bm[i+1];return Math.max(0,y0*(2*u3-3*u2+1)+y1*(-2*u3+3*u2)+m0*hh*(u3-2*u2+u)+m1*hh*(u3-u2));}}return 0;};
   const draw=()=>{let f=true;x.beginPath();for(let px=gx0;px<=gx1;px+=1.5){const t=t6+((px-gx0)/(gx1-gx0))*(t21-t6);const yy=Y(bell(t));if(f){x.moveTo(px,yy);f=false;}else x.lineTo(px,yy);}x.stroke();};
   x.lineJoin="round";x.lineCap="round";
   x.strokeStyle="rgba(255,255,255,.9)";x.lineWidth=5;draw();   // weisser Halo fuer Kontrast auf buntem Grund
