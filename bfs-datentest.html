@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BfS UV-Daten · Endpunkt-Test</title>
+<style>
+  :root{ --bg:#0d0f14; --card:#161a22; --card2:#1d222c; --fg:#e8eaed; --mut:#8b93a1;
+         --acc:#f5c518; --green:#2ecc71; --yellow:#f5c518; --red:#e74c3c; --blue:#4a9eff; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+       padding:max(16px,env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)) 16px;
+       line-height:1.45}
+  h1{font-size:19px;margin:0 0 2px;font-weight:600}
+  .ver{color:var(--acc);font-size:13px;font-weight:600}
+  .sub{color:var(--mut);font-size:13px;margin:6px 0 8px}
+  .ctx{font-size:11px;color:var(--mut);font-family:"IBM Plex Mono",monospace;
+       word-break:break-all;background:var(--card2);padding:8px 10px;border-radius:8px;margin-bottom:14px}
+  .ctx b{color:var(--acc)}
+  .warn{background:rgba(231,76,60,.14);border:1px solid var(--red);border-radius:12px;
+        padding:14px;margin:18px 0;font-size:14px;line-height:1.55;color:var(--fg)}
+  .warn b{color:var(--red)}
+  button{background:var(--acc);color:#1a1400;border:0;border-radius:12px;
+         font-size:16px;font-weight:600;padding:13px 20px;width:100%;
+         font-family:inherit;cursor:pointer;margin-bottom:18px}
+  button:disabled{opacity:.5}
+  .card{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:10px;
+        border-left:4px solid var(--mut)}
+  .card.green{border-color:var(--green)}
+  .card.yellow{border-color:var(--yellow)}
+  .card.red{border-color:var(--red)}
+  .card.blue{border-color:var(--blue)}
+  .card.pending{border-color:var(--mut);opacity:.6}
+  .row{display:flex;align-items:center;gap:8px}
+  .badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .badge.green{background:rgba(46,204,113,.18);color:var(--green)}
+  .badge.yellow{background:rgba(245,197,24,.18);color:var(--yellow)}
+  .badge.red{background:rgba(231,76,60,.18);color:var(--red)}
+  .badge.blue{background:rgba(74,158,255,.18);color:var(--blue)}
+  .badge.pending{background:rgba(139,147,161,.18);color:var(--mut)}
+  .name{font-size:14px;font-weight:600;flex:1}
+  .url{font-size:11px;color:var(--mut);word-break:break-all;margin-top:6px;
+       font-family:"IBM Plex Mono",monospace}
+  .det{font-size:12px;color:var(--mut);margin-top:8px;white-space:pre-wrap;word-break:break-all;
+       font-family:"IBM Plex Mono",monospace;background:var(--card2);padding:8px;border-radius:8px;
+       max-height:180px;overflow:auto}
+  .summary{background:var(--card2);border-radius:12px;padding:14px;margin:18px 0;font-size:14px;line-height:1.6}
+  .summary b{color:var(--acc)}
+  .legend{font-size:12px;color:var(--mut);margin-bottom:18px;line-height:1.7}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .dot.g{background:var(--green)} .dot.y{background:var(--yellow)} .dot.r{background:var(--red)} .dot.b{background:var(--blue)}
+</style>
+</head>
+<body>
+  <h1>BfS UV-Daten · Endpunkt-Test <span class="ver">v1.1</span></h1>
+  <div class="sub">Prüft, ob die BfS-Station Gießen-Wettenberg neben dem PNG auch echte Rohdaten (JSON/CSV) per <code>fetch</code> herausgibt.</div>
+  <div class="ctx" id="ctx"></div>
+
+  <div class="legend">
+    <span class="dot g"></span><b style="color:var(--green)">Grün</b> = Daten lesbar (Jackpot)&nbsp;&nbsp;
+    <span class="dot y"></span><b style="color:var(--yellow)">Gelb</b> = Server erreichbar, aber CORS blockt → Proxy nötig<br>
+    <span class="dot r"></span><b style="color:var(--red)">Rot</b> = nicht erreichbar (URL gibt's nicht)&nbsp;&nbsp;
+    <span class="dot b"></span><b style="color:var(--blue)">Blau</b> = Kontroll-Test
+  </div>
+
+  <button id="run">Test starten</button>
+  <div id="results"></div>
+
+<script>
+const STAT = "EEr_Giessen-Wettenberg_today";
+// Kandidaten-URLs, abgeleitet aus der bekannten PNG-URL
+const CANDIDATES = [
+  {name:"Tagesgrafiken / .json", url:`https://uvi.bfs.de/Tagesgrafiken/${STAT}.json`},
+  {name:"Tagesgrafiken / .csv",  url:`https://uvi.bfs.de/Tagesgrafiken/${STAT}.csv`},
+  {name:"Tagesgrafiken / .txt",  url:`https://uvi.bfs.de/Tagesgrafiken/${STAT}.txt`},
+  {name:"Tagesgrafiken / .xml",  url:`https://uvi.bfs.de/Tagesgrafiken/${STAT}.xml`},
+  {name:"Tageswerte / .csv",     url:`https://uvi.bfs.de/Tageswerte/${STAT}.csv`},
+  {name:"Tageswerte / .json",    url:`https://uvi.bfs.de/Tageswerte/${STAT}.json`},
+  {name:"Daten / .csv",          url:`https://uvi.bfs.de/Daten/${STAT}.csv`},
+  {name:"Messwerte / .csv",      url:`https://uvi.bfs.de/Messwerte/${STAT}.csv`},
+  {name:"Root / .csv",           url:`https://uvi.bfs.de/${STAT}.csv`},
+  {name:"Verzeichnis-Listing",   url:`https://uvi.bfs.de/Tagesgrafiken/`},
+  {name:"Geoportal-Wurzel",      url:`https://www.imis.bfs.de/geoportal/`},
+];
+// Kontrolltests
+const CONTROLS = [
+  {name:"PNG-Erreichbarkeit (img, ohne CORS)", url:`https://uvi.bfs.de/Tagesgrafiken/${STAT}.png`, img:true},
+  {name:"Open-Meteo uv_index (Kontrolle fetch)", url:`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=50.648&longitude=8.674&hourly=uv_index&forecast_days=1`},
+];
+
+function withTimeout(p, ms){
+  return Promise.race([ p, new Promise((_,rej)=>setTimeout(()=>rej(new Error("Timeout "+ms+"ms")), ms)) ]);
+}
+async function corsFetch(url){
+  const r = await withTimeout(fetch(url), 9000);
+  const body = await r.text();
+  return { status:r.status, ct:(r.headers.get("content-type")||"—"), body, len:body.length };
+}
+async function reachable(url){ // no-cors: wirft nur bei echtem Netzwerk-/DNS-Fehler
+  try{ await withTimeout(fetch(url,{mode:"no-cors"}), 9000); return true; }
+  catch(e){ return false; }
+}
+function imgTest(url){
+  return new Promise(res=>{
+    const im = new Image(); let done=false;
+    const t=setTimeout(()=>{ if(!done){done=true;res(false);} }, 9000);
+    im.onload =()=>{ if(!done){done=true;clearTimeout(t);res(true);} };
+    im.onerror=()=>{ if(!done){done=true;clearTimeout(t);res(false);} };
+    im.src = url + (url.includes("?")?"&":"?") + "cb=" + Date.now();
+  });
+}
+
+function card(c, state, badge, det){
+  const cls = {green:"green",yellow:"yellow",red:"red",blue:"blue",pending:"pending"}[state];
+  return `<div class="card ${cls}" id="c_${c.id}">
+    <div class="row"><span class="name">${c.name}</span><span class="badge ${cls}">${badge}</span></div>
+    <div class="url">${c.url}</div>
+    ${det?`<div class="det">${det}</div>`:""}
+  </div>`;
+}
+function esc(s){return (s||"").replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
+
+async function run(){
+  const btn=document.getElementById("run"); btn.disabled=true; btn.textContent="läuft…";
+  const box=document.getElementById("results");
+  let all=[...CANDIDATES,...CONTROLS]; all.forEach((c,i)=>c.id=i);
+  box.innerHTML = all.map(c=>card(c,"pending","wartet…","")).join("");
+  let g=0,y=0,r=0,ctrlOk=0;
+
+  for(const c of all){
+    const elId="c_"+c.id;
+    // img-Kontrolle
+    if(c.img){
+      const ok=await imgTest(c.url);
+      if(ok) ctrlOk++;
+      document.getElementById(elId).outerHTML =
+        card(c, ok?"blue":"red", ok?"erreichbar ✓":"nicht erreichbar",
+             ok?"Server uvi.bfs.de antwortet (Bild geladen). Bestätigt nur Erreichbarkeit, nicht Daten-Zugriff.":"Bild lud nicht.");
+      continue;
+    }
+    // CORS-fetch (lesbar?)
+    try{
+      const res = await corsFetch(c.url);
+      const isCtrl = c.url.includes("open-meteo");
+      const head = `HTTP ${res.status} · ${res.ct} · ${res.len} Bytes\n\n` + esc(res.body.slice(0,500)) + (res.len>500?"\n…":"");
+      if(res.status>=200 && res.status<400){
+        if(isCtrl) ctrlOk++; else g++;
+        document.getElementById(elId).outerHTML = card(c, isCtrl?"blue":"green", isCtrl?"fetch ok ✓":"DATEN LESBAR ✓", head);
+      }else{
+        document.getElementById(elId).outerHTML = card(c, "red", "HTTP "+res.status, head);
+        if(!isCtrl) r++;
+      }
+    }catch(e){
+      // CORS-fetch fehlgeschlagen → ist der Host überhaupt da?
+      const reach = await reachable(c.url);
+      if(reach){ y++;
+        document.getElementById(elId).outerHTML =
+          card(c,"yellow","CORS blockt", "Host/Route erreichbar, aber Browser darf den Inhalt nicht lesen ("+esc(e.message)+").\n→ Ginge nur über einen eigenen Proxy (Cloudflare Worker).");
+      }else{ r++;
+        document.getElementById(elId).outerHTML =
+          card(c,"red","nicht erreichbar", esc(e.message)+"\n→ Diese URL existiert vermutlich nicht.");
+      }
+    }
+  }
+
+  let sum;
+  if(ctrlOk===0){
+    sum = `<div class="warn">
+      <b>⚠ Test ungültig — falscher Kontext.</b><br>
+      Beide Kontrollen (PNG &amp; Open-Meteo) sind fehlgeschlagen, obwohl die deine echte App problemlos nutzt.
+      Das heißt: Diese Seite läuft <b>nicht</b> in echtem Safari, sondern in einer Sandbox, die externe Abrufe blockt
+      (z.&nbsp;B. die Claude-App-Vorschau).<br><br>
+      → Lege die Datei auf <b>GitHub Pages</b> und öffne sie über die <b>https://…github.io/…</b>-Adresse in Safari.
+      Erst dann ist das BfS-Ergebnis aussagekräftig.<br>
+      <span style="color:var(--mut);font-size:12px">Aktueller Kontext: ${esc(location.href)}</span>
+    </div>`;
+  } else {
+    sum = `<div class="summary">
+      <b>Ergebnis:</b> <span style="color:var(--mut);font-size:12px">(Kontrollen ok ✓)</span><br>
+      🟢 ${g} lesbar &nbsp; 🟡 ${y} per Proxy holbar &nbsp; 🔴 ${r} tot<br><br>
+      ${g>0 ? "<b>Treffer!</b> Mindestens ein Endpunkt liefert echte Daten — schick mir den Screenshot der grünen Karte(n), dann baue ich die Rohdaten in die Wetter-App ein." :
+         y>0 ? "Kein direkt lesbarer Endpunkt, aber die BfS-Server antworten. Die echten Daten wären nur über einen eigenen Proxy (Cloudflare Worker, wie bei wm2026-push) erreichbar — der die CORS-Sperre umgeht." :
+         "Keine BfS-Rohdaten über den uvi.bfs.de-Server erreichbar. Dann bleibt nur: PNG anzeigen (wie jetzt) oder das CAMS-Modell von Open-Meteo für die Säulen nutzen."}
+    </div>`;
+  }
+  box.insertAdjacentHTML("afterbegin", sum);
+  btn.disabled=false; btn.textContent="Erneut testen";
+}
+document.getElementById("run").addEventListener("click", run);
+// Kontext anzeigen, damit sofort sichtbar ist, wo die Seite läuft
+(function(){
+  const isHttps = location.protocol==="https:";
+  const ctx=document.getElementById("ctx");
+  ctx.innerHTML = `läuft auf: <b>${esc(location.href)}</b>` +
+    (isHttps ? "" : "<br><span style='color:var(--red)'>⚠ kein https — externe Abrufe werden vermutlich blockiert</span>");
+})();
+// Auto-Start nach kurzer Verzögerung
+setTimeout(run, 400);
+</script>
+</body>
+</html>
