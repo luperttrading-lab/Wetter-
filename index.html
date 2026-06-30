@@ -191,10 +191,11 @@
   .uvnow b{font-size:18px}
   .uvmax{font-size:10.5px;color:var(--faint);text-align:left;line-height:1.4;margin-top:4px}
   .uvmax b{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-  .uvcur{text-align:right;line-height:1.1;white-space:nowrap;flex-shrink:0}
-  .uvcur b{font-size:25px;font-weight:800;font-variant-numeric:tabular-nums;display:block}
-  .uvcur .cat{font-size:11.5px;font-weight:700;display:block;margin-top:1px}
-  .uvcur small{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums;display:block;margin-top:2px}
+  .uvbadge{width:60px;border-radius:9px;overflow:hidden;background:#1b5c9e;text-align:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.18);align-self:flex-start}
+  .uvb-top{color:#fff;font-size:12px;font-weight:800;line-height:1;padding:4px 0 3px}
+  .uvb-top span{display:block;font-size:6px;letter-spacing:.6px;color:#cdddf0;margin-top:1px}
+  .uvb-num{font-size:22px;font-weight:800;line-height:1;padding:5px 0;margin:0 4px;border-radius:4px;font-variant-numeric:tabular-nums}
+  .uvb-time{color:#fff;font-size:8.5px;font-weight:700;padding:3px 0 4px;font-variant-numeric:tabular-nums}
   .uvcard canvas{width:100%;height:280px;display:block;margin-top:6px}
   .uvleg{display:flex;gap:14px;justify-content:center;margin-top:4px;font-size:10.5px;color:var(--muted)}
   .uvleg i{display:inline-block;vertical-align:middle;margin-right:5px}
@@ -247,7 +248,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.80</span>
+      <span class="ver">v1.81</span>
     </div>
   </header>
 
@@ -756,6 +757,7 @@ function fetchJSON(u,ms){return Promise.race([fetch(u,{headers:{Accept:"applicat
 const WMO={0:["clear-day","Klar"],1:["clear-day","Meist klar"],2:["partly-cloudy-day","Teils bewölkt"],3:["cloudy","Bewölkt"],45:["fog","Nebel"],48:["fog","Nebel"],51:["rain","Niesel"],53:["rain","Niesel"],55:["rain","Niesel"],56:["sleet","Gefr. Niesel"],57:["sleet","Gefr. Niesel"],61:["rain","Regen"],63:["rain","Regen"],65:["rain","Starkregen"],66:["sleet","Gefr. Regen"],67:["sleet","Gefr. Regen"],71:["snow","Schnee"],73:["snow","Schnee"],75:["snow","Schnee"],77:["snow","Schneegriesel"],80:["rain","Schauer"],81:["rain","Schauer"],82:["rain","Starkschauer"],85:["snow","Schneeschauer"],86:["snow","Schneeschauer"],95:["thunderstorm","Gewitter"],96:["thunderstorm","Gewitter"],99:["thunderstorm","Gewitter"]};
 const wmo=c=>WMO[c]||["cloudy","—"];
 function uvCat(u){if(u==null)return["","#9aa7b8"];if(u<3)return["niedrig","#3a9d5d"];if(u<6)return["mäßig","#c79100"];if(u<8)return["hoch","#e07a1f"];if(u<11)return["sehr hoch","#d23b3b"];return["extrem","#8b3fb0"];}
+function uvBadgeCol(u){if(u==null)return["#9aa7b8","#fff"];if(u<1)return["#4a9e2f","#fff"];if(u<3)return["#7ac043","#163d0a"];if(u<6)return["#f5d000","#3a2e00"];if(u<8)return["#f59000","#3a2200"];if(u<11)return["#ed1c24","#fff"];return["#b83dbe","#fff"];}
 function _hx(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
 const UVSTOPS=[[0,"#006b04"],[1,"#00a014"],[2,"#5cb800"],[3,"#b6d300"],[4,"#ffe200"],[5,"#ffc400"],[6,"#ffa400"],[7,"#ff5d00"],[8,"#ff0000"],[9,"#ff0078"],[10,"#db006e"],[11,"#b000a0"]];
 function uvFine(u){if(u==null)return"#9aa7b8";if(u<=0)return UVSTOPS[0][1];if(u>=11)return UVSTOPS[10][1];for(let i=0;i<UVSTOPS.length-1;i++){if(u>=UVSTOPS[i][0]&&u<=UVSTOPS[i+1][0]){const f=(u-UVSTOPS[i][0])/(UVSTOPS[i+1][0]-UVSTOPS[i][0]),A=_hx(UVSTOPS[i][1]),B=_hx(UVSTOPS[i+1][1]);return`rgb(${Math.round(A[0]+(B[0]-A[0])*f)},${Math.round(A[1]+(B[1]-A[1])*f)},${Math.round(A[2]+(B[2]-A[2])*f)})`;}}return UVSTOPS[10][1];}
@@ -1031,13 +1033,14 @@ function renderAirGrid(air){
     const pkTime=pkI>=0?new Date(h.time[pkI]).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):"–";
     let uvN=0;for(let i=0;i<h.time.length-1;i++){const t0=new Date(h.time[i]).getTime(),t1=new Date(h.time[i+1]).getTime();if(nowMs>=t0&&nowMs<t1){uvN=h._real[i]!=null?h._real[i]:0;break;}}
     const [un,ucol]=uvCat(uvN);
+    const [bcol,btxt]=uvBadgeCol(uvN);
     const nowTime=new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
     // Vitamin-D-Fenster: clear-sky steigt über UV 3 (Start) und fällt wieder darunter (Ende)
     const _vd=[],_ut=h.time,_uc=h.uv_index_clear_sky;
     for(let i=0;i<_uc.length-1;i++){const a=_uc[i],b=_uc[i+1];if(a==null||b==null)continue;if((a<3)!==(b<3)){const f=(3-a)/(b-a);_vd.push(new Date(_ut[i]).getTime()+f*(new Date(_ut[i+1]).getTime()-new Date(_ut[i]).getTime()));}}
     let vdLine="";
     if(_vd.length>=2){const vs=new Date(_vd[0]),ve=new Date(_vd[_vd.length-1]);const vmn=Math.round((ve-vs)/60000),vh=Math.floor(vmn/60),vmin=vmn%60;const f2=t=>t.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});vdLine=`<br><b style="color:#3f9b6e">Vitamin-D-Zeit ${f2(vs)}–${f2(ve)} Uhr · Dauer ${vh}h ${String(vmin).padStart(2,"0")}min</b>`;}
-    html+=`<div class="tile wide uvcard"><div class="uvhead"><div><div class="k">UV-Index · Wettenberg</div><div class="uvmax">max. möglich (klarer Himmel)<br><b>UV ${fmt1(pk)} · ${pkTime} Uhr</b></div></div><div class="uvcur"><b style="color:${ucol}">${fmt1(uvN)}</b><span class="cat" style="color:${ucol}">${un}</span><small>${nowTime} Uhr</small></div></div><canvas id="uvchart"></canvas><div class="uvleg"><span><i class="bars"></i>gemessen bis jetzt</span><span><i class="glock"></i>max. möglich</span></div><div class="uvnote">Säulenhöhe &amp; Farbe = reale UV (max. möglich × gemessene Bewölkung) bis jetzt · dicke Kurve = max. möglich bei klarem Himmel · ab UV 3 (grün) = Vitamin-D möglich · amtliche Messung siehe unten${vdLine}</div></div>`;
+    html+=`<div class="tile wide uvcard"><div class="uvhead"><div><div class="k">UV-Index · Wettenberg</div><div class="uvmax">max. möglich (klarer Himmel)<br><b>UV ${fmt1(pk)} · ${pkTime} Uhr</b></div></div><div class="uvbadge"><div class="uvb-top">UV<span>INDEX</span></div><div class="uvb-num" style="background:${bcol};color:${btxt}">${fmt1(uvN)}</div><div class="uvb-time">${nowTime}</div></div></div><canvas id="uvchart"></canvas><div class="uvleg"><span><i class="bars"></i>gemessen bis jetzt</span><span><i class="glock"></i>max. möglich</span></div><div class="uvnote">Säulenhöhe &amp; Farbe = reale UV (max. möglich × gemessene Bewölkung) bis jetzt · dicke Kurve = max. möglich bei klarem Himmel · ab UV 3 (grün) = Vitamin-D möglich · amtliche Messung siehe unten${vdLine}</div></div>`;
     html+=`<div class="tile wide bfscard"><div class="k">Amtlich gemessen · BfS Gießen-Wettenberg</div><div class="bfswrap"><img id="bfsUv" src="https://uvi.bfs.de/Tagesgrafiken/EEr_Giessen-Wettenberg_today.png?ts=${Date.now()}" alt="UV-Index-Tagesverlauf der BfS-Messstation Gießen-Wettenberg (heute)" onload="var f=document.getElementById('bfsFb');if(f)f.style.display='none'" onerror="this.style.display='none';var f=document.getElementById('bfsFb');if(f)f.style.display='block'"><div class="bfsfb" id="bfsFb">Amtliche BfS-Messgrafik – lädt nur auf der veröffentlichten Seite (online), nicht in der App-Vorschau.</div></div><div class="uvnote">Breitbandradiometer, 1-Minuten-Takt, Station 203 m · echte Messung (kein Modell) · Quelle: <a href="https://www.bfs.de/DE/themen/opt/uv/uv-index/aktuelle-tagesverlaeufe/_documents/giessen_node.html" target="_blank" rel="noopener">BfS</a></div></div>`;
   }
   html+=moonTile(moonInfo(new Date()),moonPhys(new Date()));
