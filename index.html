@@ -212,6 +212,26 @@
   .fc-row .fill{position:absolute;height:100%;border-radius:3px}
   .lvl{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+  /* ISS-Überflüge */
+  #issSec .iss-main{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}
+  .iss-polar{flex:none}
+  .iss-data{flex:1;min-width:0}
+  .iss-time{font-size:24px;font-weight:800;color:#26334a;line-height:1}
+  .iss-cd{font-size:14px;font-weight:700;color:#6d5dd3;margin-top:3px}
+  .iss-l1{font-size:12.5px;color:var(--muted);margin-top:5px}
+  .iss-amp{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12.5px}
+  .iss-dot{width:9px;height:9px;border-radius:50%;flex:none}
+  #issList .iss-list{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:2px 14px}
+  .iss-lhead{display:flex;font-size:10.5px;color:var(--muted);font-weight:700;padding:9px 0 7px}
+  .iss-lhead span:nth-child(1){flex:0 0 92px}.iss-lhead span:nth-child(2){flex:1}.iss-lhead span:nth-child(3){flex:0 0 38px}.iss-lhead span:nth-child(4){flex:0 0 66px}
+  .iss-row{display:flex;align-items:center;font-size:12.5px;padding:9px 0;border-top:1px solid var(--line)}
+  .iss-row.grob{opacity:.5}
+  .iss-when{flex:0 0 92px;color:var(--muted)}.iss-when b{color:#26334a;font-weight:700}
+  .iss-ri{flex:1;color:var(--muted);font-size:11.5px}
+  .iss-h{flex:0 0 38px;font-weight:700;color:#26334a}
+  .iss-row .iss-amp{flex:0 0 66px;margin:0;font-size:11.5px;color:var(--muted)}
+  .iss-load,.iss-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;background:#fff;border:1px solid var(--line);border-radius:16px}
 </style>
 </head>
 <body>
@@ -223,7 +243,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v1.70</span>
+      <span class="ver">v1.71</span>
     </div>
   </header>
 
@@ -260,6 +280,7 @@
     <div class="sect">Details</div>
     <div class="grid" id="grid"></div>
     <div id="airSec" class="hidden"><div class="sect">UV, Mond &amp; Pollen</div><div class="grid" id="gridAir"></div></div>
+    <div id="issSec" class="hidden"><div class="sect">ISS-Überflüge</div><div id="issMain"></div><div id="issList"></div></div>
   </div>
 
   <div class="state" id="stLoading"><div class="spinner"></div><p>Messwerte werden geladen …</p></div>
@@ -272,6 +293,10 @@
   <div class="foot">Quellen: DWD über <a href="https://brightsky.dev" target="_blank" rel="noopener">Bright&nbsp;Sky</a> (Messung, Radar, Warnungen) · UV/Luft/Pollen &amp; 7-Tage über <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>/CAMS · Gefühlt, Sonne &amp; Mond berechnet · Zeiten Europe/Berlin.</div>
 </div>
 
+<script>
+var satellite=(()=>{var _o=Object.defineProperty;var r0=Object.getOwnPropertyDescriptor;var h0=Object.getOwnPropertyNames;var x0=Object.prototype.hasOwnProperty;var f0=(o,s)=>{for(var e in s)_o(o,e,{get:s[e],enumerable:!0})},g0=(o,s,e,c)=>{if(s&&typeof s=="object"||typeof s=="function")for(let n of h0(s))!x0.call(o,n)&&n!==e&&_o(o,n,{get:()=>s[n],enumerable:!(c=r0(s,n))||c.enumerable});return o};var M0=o=>g0(_o({},"__esModule",{value:!0}),o);var w0={};f0(w0,{degreesToRadians:()=>Qo,ecfToLookAngles:()=>o0,eciToEcf:()=>t0,eciToGeodetic:()=>Vo,gstime:()=>fo,invjday:()=>Uo,jday:()=>Xt,propagate:()=>Io,radiansToDegrees:()=>Ko,sunPos:()=>s0,twoline2satrec:()=>Jo});function ko(o,s){let e=[31,o%4===0?29:28,31,30,31,30,31,31,30,31,30,31],c=Math.floor(s),n=1,i=0;for(;c>i+e[n-1]&&n<12;)i+=e[n-1],n+=1;let r=n,x=c-i,l=(s-c)*24,f=Math.floor(l);l=(l-f)*60;let d=Math.floor(l),g=(l-d)*60;return{mon:r,day:x,hr:f,minute:d,sec:g}}function Zo(o,s,e,c,n,i,r=0){return 367*o-Math.floor(7*(o+Math.floor((s+9)/12))*.25)+Math.floor(275*s/9)+e+17210135e-1+((r/6e4+i/60+n)/60+c)/24}function Xt(o,s,e,c,n,i,r=0){if(o instanceof Date){let x=o;return Zo(x.getUTCFullYear(),x.getUTCMonth()+1,x.getUTCDate(),x.getUTCHours(),x.getUTCMinutes(),x.getUTCSeconds(),x.getUTCMilliseconds())}return Zo(o,s,e,c,n,i,r)}function Uo(o,s){let e=o-24150195e-1,c=e/365.25,n=1900+Math.floor(c),i=Math.floor((n-1901)*.25),r=e-((n-1900)*365+i)+1e-11;r<1&&(n-=1,i=Math.floor((n-1901)*.25),r=e-((n-1900)*365+i));let x=ko(n,r),{mon:l,day:f,hr:d,minute:g}=x,A=x.sec-864e-9;return s?[n,l,f,d,g,Math.floor(A)]:new Date(Date.UTC(n,l-1,f,d,g,Math.floor(A)))}var at=Math.PI,w=at*2,It=at/180,$o=180/at,Bo=1440,u0=398600.8,At=6378.135,Bt=60/Math.sqrt(At*At*At/u0),uo=At*Bt/60,jo=1/Bt,Gt=.001082616,z0=-253881e-11,Yo=-165597e-11,Jt=z0/Gt,Kt=2/3,zo=1440/(2*at);function yo(o,s){let{e3:e,ee2:c,peo:n,pgho:i,pho:r,pinco:x,plo:l,se2:f,se3:d,sgh2:g,sgh3:A,sgh4:E,sh2:S,sh3:st,si2:I,si3:C,sl2:K,sl3:_,sl4:Z,t:R,xgh2:m,xgh3:y,xgh4:M,xh2:L,xh3:nt,xi2:U,xi3:q,xl2:mt,xl3:W,xl4:et,zmol:u,zmos:it}=o,{init:v,opsmode:Y}=s,{ep:pt,inclp:ut,nodep:b,argpp:Q,mp:$}=s,a,h,V,H,zt,B,yt,tt,ot,N,k,ct,D,O,P,T,z,G,X,j,J,ft=119459e-10,ht=.01675,rt=.00015835218,lt=.0549;J=it+ft*R,v==="y"&&(J=it),j=J+2*ht*Math.sin(J),z=Math.sin(j),N=.5*z*z-.25,k=-.5*z*Math.cos(j);let qt=f*N+d*k,wt=I*N+C*k,bt=K*N+_*k+Z*z,t=g*N+A*k+E*z,Ot=S*N+st*k;J=u+rt*R,v==="y"&&(J=u),j=J+2*lt*Math.sin(J),z=Math.sin(j),N=.5*z*z-.25,k=-.5*z*Math.cos(j);let Ct=c*N+e*k,vt=U*N+q*k,jt=mt*N+W*k+et*z,Lt=m*N+y*k+M*z,gt=L*N+nt*k;return ct=qt+Ct,P=wt+vt,T=bt+jt,D=t+Lt,O=Ot+gt,v==="n"&&(ct-=n,P-=x,T-=l,D-=i,O-=r,ut+=P,pt+=ct,H=Math.sin(ut),V=Math.cos(ut),ut>=.2?(O/=H,D-=V*O,Q+=D,b+=O,$+=T):(B=Math.sin(b),zt=Math.cos(b),a=H*B,h=H*zt,yt=O*zt+P*V*B,tt=-O*B+P*V*zt,a+=yt,h+=tt,b%=w,b<0&&Y==="a"&&(b+=w),G=$+Q+V*b,ot=T+D-P*b*H,G+=ot,X=b,b=Math.atan2(a,h),b<0&&Y==="a"&&(b+=w),Math.abs(X-b)>at&&(b<X?b+=w:b-=w),$+=T,Q=G-$-V*b)),{ep:pt,inclp:ut,nodep:b,argpp:Q,mp:$}}function Ho(o){let{epoch:s,ep:e,argpp:c,tc:n,inclp:i,nodep:r,np:x}=o,l,f,d,g,A,E,S,st,I,C,K,_,Z,R,m,y,M,L,nt,U,q,mt,W,et,u,it,v,Y,pt,ut,b,Q,$,a,h,V,H,zt,B,yt,tt,ot,N,k,ct,D,O,P,T,z,G,X,j,J,ft,ht,rt,lt,qt,wt,bt,t,Ot,Ct=.01675,vt=.0549,jt=29864797e-13,Lt=47968065e-14,gt=.39785416,Vt=.91744867,Tt=.1945905,Nt=-.98088458,St=x,xt=e,_t=Math.sin(r),Ht=Math.cos(r),kt=Math.sin(c),Dt=Math.cos(c),Zt=Math.sin(i),Rt=Math.cos(i),p=xt*xt,Ut=1-p,Ft=Math.sqrt(Ut),to=0,F=0,eo=0,ao=0,mo=0,Wt=s+18261.5+n/1440,Yt=(4.523602-.00092422029*Wt)%w,Mt=Math.sin(Yt),$t=Math.cos(Yt),co=.91375164-.03568096*$t,io=Math.sqrt(1-co*co),Pt=.089683511*Mt/io,Et=Math.sqrt(1-Pt*Pt),dt=5.8351514+.001944368*Wt,oo=.39785416*Mt/io,bo=Et*$t+.91744867*Pt*Mt;oo=Math.atan2(oo,bo),oo+=dt-Yt;let qo=Math.cos(oo),wo=Math.sin(oo);U=Tt,q=Nt,et=Vt,u=gt,mt=Ht,W=_t,K=jt;let Oo=1/St,po=0;for(;po<2;)po+=1,l=U*mt+q*et*W,d=-q*mt+U*et*W,S=-U*W+q*et*mt,st=q*u,I=q*W+U*et*mt,C=U*u,f=Rt*S+Zt*st,g=Rt*I+Zt*C,A=-Zt*S+Rt*st,E=-Zt*I+Rt*C,_=l*Dt+f*kt,Z=d*Dt+g*kt,R=-l*kt+f*Dt,m=-d*kt+g*Dt,y=A*kt,M=E*kt,L=A*Dt,nt=E*Dt,bt=12*_*_-3*R*R,t=24*_*Z-6*R*m,Ot=12*Z*Z-3*m*m,X=3*(l*l+f*f)+bt*p,j=6*(l*d+f*g)+t*p,J=3*(d*d+g*g)+Ot*p,ft=-6*l*A+p*(-24*_*L-6*R*y),ht=-6*(l*E+d*A)+p*(-24*(Z*L+_*nt)+-6*(R*M+m*y)),rt=-6*d*E+p*(-24*Z*nt-6*m*M),lt=6*f*A+p*(24*_*y-6*R*L),qt=6*(g*A+f*E)+p*(24*(Z*y+_*M)-6*(m*L+R*nt)),wt=6*g*E+p*(24*Z*M-6*m*nt),X=X+X+Ut*bt,j=j+j+Ut*t,J=J+J+Ut*Ot,O=K*Oo,D=-.5*O/Ft,P=O*Ft,ct=-15*xt*P,T=_*R+Z*m,z=Z*R+_*m,G=Z*m-_*R,po===1&&(it=ct,v=D,Y=O,pt=P,ut=T,b=z,Q=G,$=X,a=j,h=J,V=ft,H=ht,zt=rt,B=lt,yt=qt,tt=wt,ot=bt,N=t,k=Ot,U=qo,q=wo,et=co,u=io,mt=Et*Ht+Pt*_t,W=_t*Et-Ht*Pt,K=Lt);let ro=(4.7199672+(.2299715*Wt-dt))%w,To=(6.2565837+.017201977*Wt)%w,No=2*it*b,so=2*it*Q,no=2*v*H,Ro=2*v*(zt-V),Po=-2*Y*a,Eo=-2*Y*(h-$),Co=-2*Y*(-21-9*p)*Ct,lo=2*pt*N,vo=2*pt*(k-ot),Do=-18*pt*Ct,ho=-2*v*yt,Mo=-2*v*(tt-B),xo=2*ct*z,Ao=2*ct*G,Lo=2*D*ht,n0=2*D*(rt-ft),e0=-2*O*j,c0=-2*O*(J-X),i0=-2*O*(-21-9*p)*vt,l0=2*P*t,d0=2*P*(Ot-bt),a0=-18*P*vt,m0=-2*D*qt,p0=-2*D*(wt-lt);return{snodm:_t,cnodm:Ht,sinim:Zt,cosim:Rt,sinomm:kt,cosomm:Dt,day:Wt,e3:Ao,ee2:xo,em:xt,emsq:p,gam:dt,peo:to,pgho:ao,pho:mo,pinco:F,plo:eo,rtemsq:Ft,se2:No,se3:so,sgh2:lo,sgh3:vo,sgh4:Do,sh2:ho,sh3:Mo,si2:no,si3:Ro,sl2:Po,sl3:Eo,sl4:Co,s1:ct,s2:D,s3:O,s4:P,s5:T,s6:z,s7:G,ss1:it,ss2:v,ss3:Y,ss4:pt,ss5:ut,ss6:b,ss7:Q,sz1:$,sz2:a,sz3:h,sz11:V,sz12:H,sz13:zt,sz21:B,sz22:yt,sz23:tt,sz31:ot,sz32:N,sz33:k,xgh2:l0,xgh3:d0,xgh4:a0,xh2:m0,xh3:p0,xi2:Lo,xi3:n0,xl2:e0,xl3:c0,xl4:i0,nm:St,z1:X,z2:j,z3:J,z11:ft,z12:ht,z13:rt,z21:lt,z22:qt,z23:wt,z31:bt,z32:t,z33:Ot,zmol:ro,zmos:To}}function Go(o){let{cosim:s,argpo:e,s1:c,s2:n,s3:i,s4:r,s5:x,sinim:l,ss1:f,ss2:d,ss3:g,ss4:A,ss5:E,sz1:S,sz3:st,sz11:I,sz13:C,sz21:K,sz23:_,sz31:Z,sz33:R,t:m,tc:y,gsto:M,mo:L,mdot:nt,no:U,nodeo:q,nodedot:mt,xpidot:W,z1:et,z3:u,z11:it,z13:v,z21:Y,z23:pt,z31:ut,z33:b,ecco:Q,eccsq:$}=o,{emsq:a,em:h,argpm:V,inclm:H,mm:zt,nm:B,nodem:yt,irez:tt,atime:ot,d2201:N,d2211:k,d3210:ct,d3222:D,d4410:O,d4422:P,d5220:T,d5232:z,d5421:G,d5433:X,dedt:j,didt:J,dmdt:ft,dnodt:ht,domdt:rt,del1:lt,del2:qt,del3:wt,xfact:bt,xlamo:t,xli:Ot,xni:Ct}=o,vt,jt,Lt,gt,Vt,Tt,Nt,St,xt,_t,Ht,kt,Dt,Zt,Rt,p,Ut,Ft,to,F,eo,ao,mo,Wt,Yt,Mt,$t,co,io,Pt,Et,dt,oo=17891679e-13,bo=21460748e-13,qo=22123015e-14,wo=17891679e-13,Oo=73636953e-16,po=21765803e-16,ro=.0043752690880113,To=37393792e-14,No=11428639e-14,so=.00015835218,no=119459e-10;tt=0,B<.0052359877&&B>.0034906585&&(tt=1),B>=.00826&&B<=.00924&&h>=.5&&(tt=2);let Ro=f*no*E,Po=d*no*(I+C),Eo=-no*g*(S+st-14-6*a),Co=A*no*(Z+R-6),lo=-no*d*(K+_);(H<.052359877||H>at-.052359877)&&(lo=0),l!==0&&(lo/=l);let vo=Co-s*lo;j=Ro+c*so*x,J=Po+n*so*(it+v),ft=Eo-so*i*(et+u-14-6*a);let Do=r*so*(ut+b-6),ho=-so*n*(Y+pt);(H<.052359877||H>at-.052359877)&&(ho=0),rt=vo+Do,ht=lo,l!==0&&(rt-=s/l*ho,ht+=ho/l);let Mo=0,xo=(M+y*ro)%w;if(h+=j*m,H+=J*m,V+=rt*m,yt+=ht*m,zt+=ft*m,tt!==0){if(Pt=(B/Bt)**Kt,tt===2){Et=s*s;let Ao=h;h=Q;let Lo=a;a=$,dt=h*a,Zt=-.306-(h-.64)*.44,h<=.65?(Rt=3.616-13.247*h+16.29*a,Ut=-19.302+117.39*h-228.419*a+156.591*dt,Ft=-18.9068+109.7927*h-214.6334*a+146.5816*dt,to=-41.122+242.694*h-471.094*a+313.953*dt,F=-146.407+841.88*h-1629.014*a+1083.435*dt,eo=-532.114+3017.977*h-5740.032*a+3708.276*dt):(Rt=-72.099+331.819*h-508.738*a+266.724*dt,Ut=-346.844+1582.851*h-2415.925*a+1246.113*dt,Ft=-342.585+1554.908*h-2366.899*a+1215.972*dt,to=-1052.797+4758.686*h-7193.992*a+3651.957*dt,F=-3581.69+16178.11*h-24462.77*a+12422.52*dt,h>.715?eo=-5149.66+29936.92*h-54087.36*a+31324.56*dt:eo=1464.74-4664.75*h+3763.64*a),h<.7?(Wt=-919.2277+4988.61*h-9064.77*a+5542.21*dt,ao=-822.71072+4568.6173*h-8491.4146*a+5337.524*dt,mo=-853.666+4690.25*h-8624.77*a+5341.4*dt):(Wt=-37995.78+161616.52*h-229838.2*a+109377.94*dt,ao=-51752.104+218913.95*h-309468.16*a+146349.42*dt,mo=-40023.88+170470.89*h-242699.48*a+115605.82*dt),Yt=l*l,vt=.75*(1+2*s+Et),jt=1.5*Yt,gt=1.875*l*(1-2*s-3*Et),Vt=-1.875*l*(1+2*s-3*Et),Nt=35*Yt*vt,St=39.375*Yt*Yt,xt=9.84375*l*(Yt*(1-2*s-5*Et)+.33333333*(-2+4*s+6*Et)),_t=l*(4.92187512*Yt*(-2-4*s+10*Et)+6.56250012*(1+2*s-3*Et)),Ht=29.53125*l*(2-8*s+Et*(-12+8*s+10*Et)),kt=29.53125*l*(-2-8*s+Et*(12+8*s-10*Et)),co=B*B,io=Pt*Pt,$t=3*co*io,Mt=$t*wo,N=Mt*vt*Zt,k=Mt*jt*Rt,$t*=Pt,Mt=$t*To,ct=Mt*gt*Ut,D=Mt*Vt*Ft,$t*=Pt,Mt=2*$t*Oo,O=Mt*Nt*to,P=Mt*St*F,$t*=Pt,Mt=$t*No,T=Mt*xt*eo,z=Mt*_t*mo,Mt=2*$t*po,G=Mt*Ht*ao,X=Mt*kt*Wt,t=(L+q+q-(xo+xo))%w,bt=nt+ft+2*(mt+ht-ro)-U,h=Ao,a=Lo}tt===1&&(Dt=1+a*(-2.5+.8125*a),Ut=1+2*a,p=1+a*(-6+6.60937*a),vt=.75*(1+s)*(1+s),Lt=.9375*l*l*(1+3*s)-.75*(1+s),Tt=1+s,Tt*=1.875*Tt*Tt,lt=3*B*B*Pt*Pt,qt=2*lt*vt*Dt*oo,wt=3*lt*Tt*p*qo*Pt,lt=lt*Lt*Ut*bo*Pt,t=(L+q+e-xo)%w,bt=nt+W+ft+rt+ht-(U+ro)),Ot=t,Ct=U,ot=0,B=U+Mo}return{em:h,argpm:V,inclm:H,mm:zt,nm:B,nodem:yt,irez:tt,atime:ot,d2201:N,d2211:k,d3210:ct,d3222:D,d4410:O,d4422:P,d5220:T,d5232:z,d5421:G,d5433:X,dedt:j,didt:J,dmdt:ft,dndt:Mo,dnodt:ht,domdt:rt,del1:lt,del2:qt,del3:wt,xfact:bt,xlamo:t,xli:Ot,xni:Ct}}function Fo(o){let s=(o-2451545)/36525,e=-62e-7*s*s*s+.093104*s*s+(876600*3600+8640184812866e-6)*s+67310.54841;return e=e*It/240%w,e<0&&(e+=w),e}function fo(o,s,e,c,n,i,r){return o instanceof Date?Fo(Xt(o)):Fo(s!==void 0?Xt(o,s,e,c,n,i,r):o)}function So(o){let{ecco:s,epoch:e,inclo:c,opsmode:n}=o,{no:i}=o,r=s*s,x=1-r,l=Math.sqrt(x),f=Math.cos(c),d=f*f,g=(Bt/i)**Kt,A=.75*Gt*(3*d-1)/(l*x),E=A/(g*g),S=g*(1-E*E-E*(1/3+134*E*E/81));E=A/(S*S),i/=1+E;let st=(Bt/i)**Kt,I=Math.sin(c),C=st*x,K=1-5*d,_=-K-d-d,Z=1/st,R=C*C,m=st*(1-s),y="n",M;if(n==="a"){let L=e-7305,nt=Math.floor(L+1e-8),U=L-nt,q=.017202791694070362,mt=1.7321343856509375,W=5075514194322695e-30,et=q+w;M=(mt+q*nt+et*U+L*L*W)%w,M<0&&(M+=w)}else M=fo(e+24332815e-1);return{no:i,method:y,ainv:Z,ao:st,con41:_,con42:K,cosio:f,cosio2:d,eccsq:r,omeosq:x,posq:R,rp:m,rteosq:l,sinio:I,gsto:M}}function Wo(o){let{irez:s,d2201:e,d2211:c,d3210:n,d3222:i,d4410:r,d4422:x,d5220:l,d5232:f,d5421:d,d5433:g,dedt:A,del1:E,del2:S,del3:st,didt:I,dmdt:C,dnodt:K,domdt:_,argpo:Z,argpdot:R,t:m,tc:y,gsto:M,xfact:L,xlamo:nt,no:U}=o,{atime:q,em:mt,argpm:W,inclm:et,xli:u,mm:it,xni:v,nodem:Y,nm:pt}=o,ut=.13130908,b=2.8843198,Q=.37448087,$=5.7686396,a=.95240898,h=1.8014998,V=1.050833,H=4.4108898,zt=.0043752690880113,B=720,yt=-720,tt=259200,ot,N,k,ct,D,O,P,T,z=0,G=0,X=(M+y*zt)%w;if(mt+=A*m,et+=I*m,W+=_*m,Y+=K*m,it+=C*m,s!==0){(q===0||m*q<=0||Math.abs(m)<Math.abs(q))&&(q=0,v=U,u=nt),m>0?ot=B:ot=yt;let j=381;for(;j===381;)s!==2?(P=E*Math.sin(u-ut)+S*Math.sin(2*(u-b))+st*Math.sin(3*(u-Q)),D=v+L,O=E*Math.cos(u-ut)+2*S*Math.cos(2*(u-b))+3*st*Math.cos(3*(u-Q)),O*=D):(T=Z+R*q,k=T+T,N=u+u,P=e*Math.sin(k+u-$)+c*Math.sin(u-$)+n*Math.sin(T+u-a)+i*Math.sin(-T+u-a)+r*Math.sin(k+N-h)+x*Math.sin(N-h)+l*Math.sin(T+u-V)+f*Math.sin(-T+u-V)+d*Math.sin(T+N-H)+g*Math.sin(-T+N-H),D=v+L,O=e*Math.cos(k+u-$)+c*Math.cos(u-$)+n*Math.cos(T+u-a)+i*Math.cos(-T+u-a)+l*Math.cos(T+u-V)+f*Math.cos(-T+u-V)+2*(r*Math.cos(k+N-h)+x*Math.cos(N-h)+d*Math.cos(T+N-H)+g*Math.cos(-T+N-H)),O*=D),Math.abs(m-q)>=B?j=381:(G=m-q,j=0),j===381&&(u+=D*ot+P*tt,v+=P*ot+O*tt,q+=ot);pt=v+P*G+O*G*G*.5,ct=u+D*G+P*G*G*.5,s!==1?(it=ct-2*Y+2*X,z=pt-U):(it=ct-Y-W+X,z=pt-U),pt=U+z}return{atime:q,em:mt,argpm:W,inclm:et,xli:u,mm:it,xni:v,nodem:Y,dndt:z,nm:pt}}var Qt;(function(o){o[o.None=0]="None",o[o.MeanEccentricityOutOfRange=1]="MeanEccentricityOutOfRange",o[o.MeanMotionBelowZero=2]="MeanMotionBelowZero",o[o.PerturbedEccentricityOutOfRange=3]="PerturbedEccentricityOutOfRange",o[o.SemiLatusRectumBelowZero=4]="SemiLatusRectumBelowZero",o[o.Decayed=6]="Decayed"})(Qt||(Qt={}));function go(o,s){let e,c,n,i,r,x,l,f,d,g,A,E,S,st,I,C,K,_,Z,R,m,y,M,L,nt,U,q;o.t=s,o.error=Qt.None;let W=o.mo+o.mdot*o.t,et=o.argpo+o.argpdot*o.t,u=o.nodeo+o.nodedot*o.t;d=et,m=W;let it=o.t*o.t;if(M=u+o.nodecf*it,K=1-o.cc1*o.t,_=o.bstar*o.cc4*o.t,Z=o.t2cof*it,o.isimp!==1){l=o.omgcof*o.t;let xt=1+o.eta*Math.cos(W);x=o.xmcof*(xt*xt*xt-o.delmo),C=l+x,m=W+C,d=et-C,E=it*o.t,S=E*o.t,K=K-o.d2*it-o.d3*E-o.d4*S,_+=o.bstar*o.cc5*(Math.sin(m)-o.sinmao),Z=Z+o.t3cof*E+S*(o.t4cof+o.t*o.t5cof)}y=o.no;let v=o.ecco;if(R=o.inclo,o.method==="d"){st=o.t;let xt={irez:o.irez,d2201:o.d2201,d2211:o.d2211,d3210:o.d3210,d3222:o.d3222,d4410:o.d4410,d4422:o.d4422,d5220:o.d5220,d5232:o.d5232,d5421:o.d5421,d5433:o.d5433,dedt:o.dedt,del1:o.del1,del2:o.del2,del3:o.del3,didt:o.didt,dmdt:o.dmdt,dnodt:o.dnodt,domdt:o.domdt,argpo:o.argpo,argpdot:o.argpdot,t:o.t,tc:st,gsto:o.gsto,xfact:o.xfact,xlamo:o.xlamo,no:o.no,atime:o.atime,em:v,argpm:d,inclm:R,xli:o.xli,mm:m,xni:o.xni,nodem:M,nm:y};({em:v,argpm:d,inclm:R,mm:m,nodem:M,nm:y}=Wo(xt))}if(y<=0)return o.error=Qt.MeanMotionBelowZero,null;let Y=(Bt/y)**Kt*K*K;if(y=Bt/Y**1.5,v-=_,v>=1||v<-.001)return o.error=Qt.MeanEccentricityOutOfRange,null;v<1e-6&&(v=1e-6),m+=o.no*Z,nt=m+d+M,M%=w,d%=w,nt%=w,m=(nt-d-M)%w;let pt={am:Y,em:v,im:R,Om:M,om:d,mm:m,nm:y},ut=Math.sin(R),b=Math.cos(R),Q=v;if(L=R,g=d,q=M,U=m,i=ut,n=b,o.method==="d"){let xt={inclo:o.inclo,init:"n",ep:Q,inclp:L,nodep:q,argpp:g,mp:U,opsmode:o.operationmode},_t=yo(o,xt);if({ep:Q,nodep:q,argpp:g,mp:U}=_t,L=_t.inclp,L<0&&(L=-L,q+=at,g-=at),Q<0||Q>1)return o.error=Qt.PerturbedEccentricityOutOfRange,null}o.method==="d"&&(i=Math.sin(L),n=Math.cos(L),o.aycof=-.5*Jt*i,Math.abs(n+1)>15e-13?o.xlcof=-.25*Jt*i*(3+5*n)/(1+n):o.xlcof=-.25*Jt*i*(3+5*n)/15e-13);let $=Q*Math.cos(g);C=1/(Y*(1-Q*Q));let a=Q*Math.sin(g)+C*o.aycof,V=(U+g+q+C*o.xlcof*$-q)%w;f=V,I=9999.9;let H=1;for(;Math.abs(I)>=1e-12&&H<=10;)c=Math.sin(f),e=Math.cos(f),I=1-e*$-c*a,I=(V-a*e+$*c-f)/I,Math.abs(I)>=.95&&(I>0?I=.95:I=-.95),f+=I,H+=1;let zt=$*e+a*c,B=$*c-a*e,yt=$*$+a*a,tt=Y*(1-yt);if(tt<0)return o.error=Qt.SemiLatusRectumBelowZero,null;let ot=Y*(1-zt),N=Math.sqrt(Y)*B/ot,k=Math.sqrt(tt)/ot,ct=Math.sqrt(1-yt);C=B/(1+ct);let D=Y/ot*(c-a-$*C),O=Y/ot*(e-$+a*C);A=Math.atan2(D,O);let P=(O+O)*D,T=1-2*D*D;C=1/tt;let z=.5*Gt*C,G=z*C;o.method==="d"&&(r=n*n,o.con41=3*r-1,o.x1mth2=1-r,o.x7thm1=7*r-1);let X=ot*(1-1.5*G*ct*o.con41)+.5*z*o.x1mth2*T;if(X<1)return o.error=Qt.Decayed,null;A-=.25*G*o.x7thm1*P;let j=q+1.5*G*n*P,J=L+1.5*G*n*i*T,ft=N-y*z*o.x1mth2*P/Bt,ht=k+y*z*(o.x1mth2*T+1.5*o.con41)/Bt,rt=Math.sin(A),lt=Math.cos(A),qt=Math.sin(j),wt=Math.cos(j),bt=Math.sin(J),t=Math.cos(J),Ot=-qt*t,Ct=wt*t,vt=Ot*rt+wt*lt,jt=Ct*rt+qt*lt,Lt=bt*rt,gt=Ot*lt-wt*rt,Vt=Ct*lt-qt*rt,Tt=bt*lt,Nt={x:X*vt*At,y:X*jt*At,z:X*Lt*At},St={x:(ft*vt+ht*gt)*uo,y:(ft*jt+ht*Vt)*uo,z:(ft*Lt+ht*Tt)*uo};return{position:Nt,velocity:St,meanElements:pt}}function Xo(o,s){let{opsmode:e,satn:c,epoch:n,xbstar:i,xecco:r,xargpo:x,xinclo:l,xmo:f,xno:d,xnodeo:g}=s,A,E,S,st,I,C,K,_,Z,R,m,y,M,L,nt,U,q,mt,W,et,u,it,v,Y,pt,ut,b,Q,$,a,h,V,H,zt,B,yt,tt,ot,N,k,ct,D,O,P,T,z,G,X,j,J,ft,ht,rt,lt,qt,wt,bt=15e-13,t=o;t.isimp=0,t.method="n",t.aycof=0,t.con41=0,t.cc1=0,t.cc4=0,t.cc5=0,t.d2=0,t.d3=0,t.d4=0,t.delmo=0,t.eta=0,t.argpdot=0,t.omgcof=0,t.sinmao=0,t.t=0,t.t2cof=0,t.t3cof=0,t.t4cof=0,t.t5cof=0,t.x1mth2=0,t.x7thm1=0,t.mdot=0,t.nodedot=0,t.xlcof=0,t.xmcof=0,t.nodecf=0,t.irez=0,t.d2201=0,t.d2211=0,t.d3210=0,t.d3222=0,t.d4410=0,t.d4422=0,t.d5220=0,t.d5232=0,t.d5421=0,t.d5433=0,t.dedt=0,t.del1=0,t.del2=0,t.del3=0,t.didt=0,t.dmdt=0,t.dnodt=0,t.domdt=0,t.e3=0,t.ee2=0,t.peo=0,t.pgho=0,t.pho=0,t.pinco=0,t.plo=0,t.se2=0,t.se3=0,t.sgh2=0,t.sgh3=0,t.sgh4=0,t.sh2=0,t.sh3=0,t.si2=0,t.si3=0,t.sl2=0,t.sl3=0,t.sl4=0,t.gsto=0,t.xfact=0,t.xgh2=0,t.xgh3=0,t.xgh4=0,t.xh2=0,t.xh3=0,t.xi2=0,t.xi3=0,t.xl2=0,t.xl3=0,t.xl4=0,t.xlamo=0,t.zmol=0,t.zmos=0,t.atime=0,t.xli=0,t.xni=0,t.bstar=i,t.ecco=r,t.argpo=x,t.inclo=l,t.mo=f,t.no=d,t.nodeo=g,t.operationmode=e;let Ot=78/At+1,Ct=42/At,vt=Ct*Ct*Ct*Ct;t.init="y",t.t=0;let jt={satn:c,ecco:t.ecco,epoch:n,inclo:t.inclo,no:t.no,method:t.method,opsmode:t.operationmode},Lt=So(jt),{ao:gt,con42:Vt,cosio:Tt,cosio2:Nt,eccsq:St,omeosq:xt,posq:_t,rp:Ht,rteosq:kt,sinio:Dt}=Lt;if(t.no=Lt.no,t.con41=Lt.con41,t.gsto=Lt.gsto,t.a=(t.no*jo)**(-2/3),t.alta=t.a*(1+t.ecco)-1,t.altp=t.a*(1-t.ecco)-1,t.error=0,xt>=0||t.no>=0){if(t.isimp=0,Ht<220/At+1&&(t.isimp=1),b=Ot,u=vt,mt=(Ht-1)*At,mt<156){b=mt-78,mt<98&&(b=20);let Rt=(120-b)/At;u=Rt*Rt*Rt*Rt,b=b/At+1}W=1/_t,z=1/(gt-b),t.eta=gt*t.ecco*z,y=t.eta*t.eta,m=t.ecco*t.eta,et=Math.abs(1-y),C=u*z**4,K=C/et**3.5,st=K*t.no*(gt*(1+1.5*y+m*(4+y))+.375*Gt*z/et*t.con41*(8+3*y*(8+y))),t.cc1=t.bstar*st,I=0,t.ecco>1e-4&&(I=-2*C*z*Jt*t.no*Dt/t.ecco),t.x1mth2=1-Nt,t.cc4=2*t.no*K*gt*xt*(t.eta*(2+.5*y)+t.ecco*(.5+2*y)-Gt*z/(gt*et)*(-3*t.con41*(1-2*m+y*(1.5-.5*m))+.75*t.x1mth2*(2*y-m*(1+y))*Math.cos(2*t.argpo))),t.cc5=2*K*gt*xt*(1+2.75*(y+m)+m*y),_=Nt*Nt,O=1.5*Gt*W*t.no,P=.5*O*Gt*W,T=-.46875*Yo*W*W*t.no,t.mdot=t.no+.5*O*kt*t.con41+.0625*P*kt*(13-78*Nt+137*_),t.argpdot=-.5*O*Vt+.0625*P*(7-114*Nt+395*_)+T*(3-36*Nt+49*_),X=-O*Tt,t.nodedot=X+(.5*P*(4-19*Nt)+2*T*(3-7*Nt))*Tt,G=t.argpdot+t.nodedot,t.omgcof=t.bstar*I*Math.cos(t.argpo),t.xmcof=0,t.ecco>1e-4&&(t.xmcof=-Kt*C*t.bstar/m),t.nodecf=3.5*xt*X*t.cc1,t.t2cof=1.5*t.cc1,Math.abs(Tt+1)>15e-13?t.xlcof=-.25*Jt*Dt*(3+5*Tt)/(1+Tt):t.xlcof=-.25*Jt*Dt*(3+5*Tt)/bt,t.aycof=-.5*Jt*Dt;let Zt=1+t.eta*Math.cos(t.mo);if(t.delmo=Zt*Zt*Zt,t.sinmao=Math.sin(t.mo),t.x7thm1=7*Nt-1,2*at/t.no>=225){t.method="d",t.isimp=1,ct=0,nt=t.inclo;let Rt={epoch:n,ep:t.ecco,argpp:t.argpo,tc:ct,inclp:t.inclo,nodep:t.nodeo,np:t.no,e3:t.e3,ee2:t.ee2,peo:t.peo,pgho:t.pgho,pho:t.pho,pinco:t.pinco,plo:t.plo,se2:t.se2,se3:t.se3,sgh2:t.sgh2,sgh3:t.sgh3,sgh4:t.sgh4,sh2:t.sh2,sh3:t.sh3,si2:t.si2,si3:t.si3,sl2:t.sl2,sl3:t.sl3,sl4:t.sl4,xgh2:t.xgh2,xgh3:t.xgh3,xgh4:t.xgh4,xh2:t.xh2,xh3:t.xh3,xi2:t.xi2,xi3:t.xi3,xl2:t.xl2,xl3:t.xl3,xl4:t.xl4,zmol:t.zmol,zmos:t.zmos},p=Ho(Rt);t.e3=p.e3,t.ee2=p.ee2,t.peo=p.peo,t.pgho=p.pgho,t.pho=p.pho,t.pinco=p.pinco,t.plo=p.plo,t.se2=p.se2,t.se3=p.se3,t.sgh2=p.sgh2,t.sgh3=p.sgh3,t.sgh4=p.sgh4,t.sh2=p.sh2,t.sh3=p.sh3,t.si2=p.si2,t.si3=p.si3,t.sl2=p.sl2,t.sl3=p.sl3,t.sl4=p.sl4,{sinim:E,cosim:A,em:Z,emsq:R,s1:it,s2:v,s3:Y,s4:pt,s5:ut,ss1:Q,ss2:$,ss3:a,ss4:h,ss5:V,sz1:H,sz3:zt,sz11:B,sz13:yt,sz21:tt,sz23:ot,sz31:N,sz33:k}=p,t.xgh2=p.xgh2,t.xgh3=p.xgh3,t.xgh4=p.xgh4,t.xh2=p.xh2,t.xh3=p.xh3,t.xi2=p.xi2,t.xi3=p.xi3,t.xl2=p.xl2,t.xl3=p.xl3,t.xl4=p.xl4,t.zmol=p.zmol,t.zmos=p.zmos,{nm:q,z1:j,z3:J,z11:ft,z13:ht,z21:rt,z23:lt,z31:qt,z33:wt}=p;let Ut={inclo:nt,init:t.init,ep:t.ecco,inclp:t.inclo,nodep:t.nodeo,argpp:t.argpo,mp:t.mo,opsmode:t.operationmode},Ft=yo(t,Ut);t.ecco=Ft.ep,t.inclo=Ft.inclp,t.nodeo=Ft.nodep,t.argpo=Ft.argpp,t.mo=Ft.mp,M=0,L=0,U=0;let to={cosim:A,emsq:R,argpo:t.argpo,s1:it,s2:v,s3:Y,s4:pt,s5:ut,sinim:E,ss1:Q,ss2:$,ss3:a,ss4:h,ss5:V,sz1:H,sz3:zt,sz11:B,sz13:yt,sz21:tt,sz23:ot,sz31:N,sz33:k,t:t.t,tc:ct,gsto:t.gsto,mo:t.mo,mdot:t.mdot,no:t.no,nodeo:t.nodeo,nodedot:t.nodedot,xpidot:G,z1:j,z3:J,z11:ft,z13:ht,z21:rt,z23:lt,z31:qt,z33:wt,ecco:t.ecco,eccsq:St,em:Z,argpm:M,inclm:nt,mm:U,nm:q,nodem:L,irez:t.irez,atime:t.atime,d2201:t.d2201,d2211:t.d2211,d3210:t.d3210,d3222:t.d3222,d4410:t.d4410,d4422:t.d4422,d5220:t.d5220,d5232:t.d5232,d5421:t.d5421,d5433:t.d5433,dedt:t.dedt,didt:t.didt,dmdt:t.dmdt,dnodt:t.dnodt,domdt:t.domdt,del1:t.del1,del2:t.del2,del3:t.del3,xfact:t.xfact,xlamo:t.xlamo,xli:t.xli,xni:t.xni},F=Go(to);t.irez=F.irez,t.atime=F.atime,t.d2201=F.d2201,t.d2211=F.d2211,t.d3210=F.d3210,t.d3222=F.d3222,t.d4410=F.d4410,t.d4422=F.d4422,t.d5220=F.d5220,t.d5232=F.d5232,t.d5421=F.d5421,t.d5433=F.d5433,t.dedt=F.dedt,t.didt=F.didt,t.dmdt=F.dmdt,t.dnodt=F.dnodt,t.domdt=F.domdt,t.del1=F.del1,t.del2=F.del2,t.del3=F.del3,t.xfact=F.xfact,t.xlamo=F.xlamo,t.xli=F.xli,t.xni=F.xni}t.isimp!==1&&(S=t.cc1*t.cc1,t.d2=4*gt*z*S,D=t.d2*z*t.cc1/3,t.d3=(17*gt+b)*D,t.d4=.5*D*gt*z*(221*gt+31*b)*t.cc1,t.t3cof=t.d2+2*S,t.t4cof=.25*(3*t.d3+t.cc1*(12*t.d2+10*S)),t.t5cof=.2*(3*t.d4+12*t.cc1*t.d3+6*t.d2*t.d2+15*S*(2*t.d2+S)))}go(t,0),t.init="n"}function Jo(o,s){let n=o.substring(2,7),i=parseInt(o.substring(18,20),10),r=parseFloat(o.substring(20,32)),x=parseFloat(o.substring(33,43)),l=parseFloat(`${o.substring(44,45)}.${o.substring(45,50)}E${o.substring(50,52)}`),f=parseFloat(`${o.substring(53,54)}.${o.substring(54,59)}E${o.substring(59,61)}`),d=parseFloat(s.substring(8,16))*It,g=parseFloat(s.substring(17,25))*It,A=parseFloat(`.${s.substring(26,33).replace(/\s/g,"0")}`),E=parseFloat(s.substring(34,42))*It,S=parseFloat(s.substring(43,51))*It,st=parseFloat(s.substring(52,63))/zo;x/=zo*1440,l/=zo*1440*1440;let I=i<57?i+2e3:i+1900,C=ko(I,r),{mon:K,day:_,hr:Z,minute:R,sec:m}=C,y=Xt(I,K,_,Z,R,m),M={error:0,satnum:n,epochyr:i,epochdays:r,ndot:x,nddot:l,bstar:f,inclo:d,nodeo:g,ecco:A,argpo:E,mo:S,no:st,jdsatepoch:y};return Xo(M,{opsmode:"i",satn:M.satnum,epoch:M.jdsatepoch-24332815e-1,xbstar:M.bstar,xecco:M.ecco,xargpo:M.argpo,xinclo:M.inclo,xmo:M.mo,xno:M.no,xnodeo:M.nodeo}),M}function Io(o,...s){let c=(Xt(...s)-o.jdsatepoch)*Bo;return go(o,c)}function Ko(o){return o*$o}function Qo(o){return o*It}function y0({longitude:o,latitude:s,height:e}){let i=(6378.137-6356.7523142)/6378.137,r=2*i-i*i,x=6378.137/Math.sqrt(1-r*(Math.sin(s)*Math.sin(s))),l=(x+e)*Math.cos(s)*Math.cos(o),f=(x+e)*Math.cos(s)*Math.sin(o),d=(x*(1-r)+e)*Math.sin(s);return{x:l,y:f,z:d}}function Vo(o,s){let c=6356.7523142,n=Math.sqrt(o.x*o.x+o.y*o.y),i=(6378.137-c)/6378.137,r=2*i-i*i,x=((Math.atan2(o.y,o.x)-s+at)%w+w)%w-at,l=20,f=0,d=Math.atan2(o.z,Math.sqrt(o.x*o.x+o.y*o.y)),g;for(;f++<l;)g=1/Math.sqrt(1-r*(Math.sin(d)*Math.sin(d))),d=Math.atan2(o.z+6378.137*g*r*Math.sin(d),n);let A=n/Math.cos(d)-6378.137*g;return{longitude:x,latitude:d,height:A}}function t0(o,s){let e=o.x*Math.cos(s)+o.y*Math.sin(s),c=o.x*-Math.sin(s)+o.y*Math.cos(s),{z:n}=o;return{x:e,y:c,z:n}}function b0(o,s){let{longitude:e,latitude:c}=o,n=y0(o),i=s.x-n.x,r=s.y-n.y,x=s.z-n.z,l=Math.sin(c)*Math.cos(e)*i+Math.sin(c)*Math.sin(e)*r-Math.cos(c)*x,f=-Math.sin(e)*i+Math.cos(e)*r,d=Math.cos(c)*Math.cos(e)*i+Math.cos(c)*Math.sin(e)*r+Math.sin(c)*x;return{topS:l,topE:f,topZ:d}}function q0(o){let{topS:s,topE:e,topZ:c}=o,n=Math.sqrt(s*s+e*e+c*c),i=Math.asin(c/n);return{azimuth:Math.atan2(-e,s)+at,elevation:i,rangeSat:n}}function o0(o,s){let e=b0(o,s);return q0(e)}function s0(o){let s=(o-2451545)/36525,e=(280.46+36000.77*s)%360,c=(357.5277233+35999.05034*s*It)%w;c<0&&(c+=w);let n=(e+1.914666471*Math.sin(c)+.019994643*Math.sin(2*c))%360*It,i=(23.439291-.0130042*s)*It,r=1.000140612-.016708617*Math.cos(c)-139589e-9*Math.cos(2*c),x={x:r*Math.cos(n),y:r*Math.cos(i)*Math.sin(n),z:r*Math.sin(i)*Math.sin(n)},l=Math.atan(Math.cos(i)*Math.tan(n)),f=n;f<0&&(f+=w);let d=l;Math.abs(n-d)>at*.5&&(d+=.5*at*Math.round((n-l)/(.5*at)));let g=Math.asin(Math.sin(i)*Math.sin(n));return{rsun:x,rtasc:d,decl:g}}return M0(w0);})();
+
+</script>
 <script>
 "use strict";
 const LAT=50.6034, LON=8.6516, WINDOW_HOURS=72, CHART_PAST_H=72, CHART_FUT_H=48, CHART_VIEW_H=48;
@@ -1074,6 +1099,7 @@ function loadExtras(){
   renderRadolan(); // genauere DWD-Radar-Tagessumme; ueberschreibt den Open-Meteo-Wert oben, sobald da
   fetchJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${ll}&current=uv_index,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,ragweed_pollen&hourly=uv_index,uv_index_clear_sky&forecast_days=1&timezone=Europe%2FBerlin`).then(renderAirGrid).catch(e=>console.warn("air",e.message));
   fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&forecast_days=16&timezone=Europe%2FBerlin`).then(renderForecast).catch(e=>{el("fcSec").classList.add("hidden");console.warn("fc",e.message);});
+  loadIss();
   fetchJSON(`https://api.brightsky.dev/radar?lat=${LAT}&lon=${LON}&distance=1000&format=plain&tz=Europe/Berlin&date=${encodeURIComponent(new Date().toISOString())}`,11000).then(renderNowcast).catch(e=>{el("nowcastSec").classList.add("hidden");console.warn("radar",e.message);});
   fetchJSON(`https://api.brightsky.dev/alerts?lat=${LAT}&lon=${LON}`).then(renderAlerts).catch(e=>console.warn("alerts",e.message));
 }
@@ -1095,6 +1121,148 @@ function DEMO_EXTRAS(){
   renderAirGrid({current:{uv_index:uvAC[hNow],european_aqi:33,pm2_5:9.4,pm10:16.2,nitrogen_dioxide:11,ozone:92,grass_pollen:42,birch_pollen:4,alder_pollen:0,mugwort_pollen:9,ragweed_pollen:0},hourly:{time:times,uv_index:uvAC,uv_index_clear_sky:uvCS}});
   const days=[...Array(16)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()+i);return d.toLocaleDateString("en-CA");});
   renderForecast({daily:{time:days,weather_code:[0,1,2,80,95,2,1,3,61,80,2,1,0,2,3,61],temperature_2m_max:[38,37,33,27,24,28,30,29,25,24,27,29,31,30,28,26],temperature_2m_min:[21,22,20,18,16,16,17,18,17,16,16,17,18,18,17,16],precipitation_probability_max:[0,5,25,70,80,20,10,30,60,70,20,10,5,15,25,55],precipitation_sum:[0,0,0.4,6.2,14.5,1.1,0,2.3,8.0,12.0,0.8,0,0,0.6,2.1,9.4]}});
+}
+
+/* ===== ISS-Modul ===== */
+/* ===================== ISS-Überflüge (SGP4 via satellite.js) ===================== */
+const ISS_LAT=50.6479651, ISS_LON=8.6740943, ISS_ALT=0.2, ISS_AU=149597870.7, ISS_RE=6371;
+let _issSat=null, _issPasses=null, _issTimer=null;
+function _issObs(){const S=window.satellite;return {latitude:S.degreesToRadians(ISS_LAT),longitude:S.degreesToRadians(ISS_LON),height:ISS_ALT};}
+function issLook(satrec,date){
+  const S=window.satellite, pv=S.propagate(satrec,date); if(!pv.position)return null;
+  const gmst=S.gstime(date), ecf=S.eciToEcf(pv.position,gmst), la=S.ecfToLookAngles(_issObs(),ecf);
+  return {el:S.radiansToDegrees(la.elevation), az:(S.radiansToDegrees(la.azimuth)+360)%360, range:la.rangeSat, eci:pv.position};
+}
+function issSunAlt(date){            // Sonnenhöhe am Beobachter – jday ist PFLICHT
+  const S=window.satellite, sp=S.sunPos(S.jday(date)), gmst=S.gstime(date);
+  const eci={x:sp.rsun.x*ISS_AU,y:sp.rsun.y*ISS_AU,z:sp.rsun.z*ISS_AU};
+  const la=S.ecfToLookAngles(_issObs(),S.eciToEcf(eci,gmst));
+  return {alt:S.radiansToDegrees(la.elevation), sp};
+}
+function issSunlit(eci,sp){          // ISS außerhalb des Erdschattens?
+  const m=Math.hypot(sp.rsun.x,sp.rsun.y,sp.rsun.z), s=[sp.rsun.x/m,sp.rsun.y/m,sp.rsun.z/m];
+  const dpar=eci.x*s[0]+eci.y*s[1]+eci.z*s[2];
+  const px=eci.x-dpar*s[0],py=eci.y-dpar*s[1],pz=eci.z-dpar*s[2];
+  return !(dpar<0 && Math.hypot(px,py,pz)<ISS_RE);
+}
+function issMag(range){return -1.8 + 5*Math.log10(Math.max(range,1)/1000);}
+const ISS_DIRS=['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+function issDir(a){return ISS_DIRS[Math.round(a/22.5)%16];}
+function issComputePasses(satrec,days,fromDate){
+  const start=fromDate?new Date(fromDate):new Date(); const passes=[]; let cur=null;
+  for(let s=0;s<days*86400;s+=10){
+    const t=new Date(start.getTime()+s*1000), r=issLook(satrec,t); if(!r)continue;
+    if(r.el>10){
+      if(!cur)cur={start:t,startAz:r.az,maxEl:r.el,maxAz:r.az,peakT:t,peakEci:r.eci,peakRange:r.range,end:t,endAz:r.az,track:[]};
+      else{cur.end=t;cur.endAz=r.az;if(r.el>cur.maxEl){cur.maxEl=r.el;cur.maxAz=r.az;cur.peakT=t;cur.peakEci=r.eci;cur.peakRange=r.range;}}
+      cur.track.push({az:r.az,el:r.el});
+    } else if(cur){passes.push(_issFinish(cur));cur=null;}
+  }
+  if(cur)passes.push(_issFinish(cur));
+  return passes;
+}
+function _issFinish(p){
+  const sun=issSunAlt(p.peakT);
+  p.sunAlt=sun.alt; p.sunlit=issSunlit(p.peakEci,sun.sp);
+  p.visible=p.sunAlt<-6 && p.sunlit; p.mag=issMag(p.peakRange);
+  p.durSec=Math.round((p.end-p.start)/1000); return p;
+}
+/* Bewölkung (%) zur Überflugzeit aus fullRows (Bright Sky, stündlich) */
+function issCloudAt(date){
+  if(!Array.isArray(fullRows))return null; let best=null,bd=1e18;
+  for(const r of fullRows){if(r.cloud_cover==null)continue;const d=Math.abs(new Date(r.timestamp)-date);if(d<bd){bd=d;best=r.cloud_cover;}}
+  return bd<2*3600000?best:null;
+}
+function issAmpel(cloud){
+  if(cloud==null)return ['#9aa7b8','—'];
+  if(cloud<=33)return ['#3a9d5d','klar'];
+  if(cloud<=66)return ['#c79100','diesig'];
+  return ['#c0392b','bedeckt'];
+}
+function issWhen(d,now){
+  const t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const t1=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const dd=Math.round((t1-t0)/86400000), wd=['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];
+  return dd===0?'Heute':dd===1?'Morgen':wd;
+}
+function issTime(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function issCountdown(d,now){
+  let ms=d-now; if(ms<=0)return 'läuft gerade';
+  const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
+  return h>0?`in ${h} Std ${m} Min`:`in ${m} Min`;
+}
+/* Polar-Himmelskreis mit echter Bahn + Start/Ende-Pfeilen */
+function issPolarSVG(p,sz){
+  const R=42,cx=50,cy=50;
+  const pol=(az,el)=>{const r=R*(1-el/90),a=az*Math.PI/180;return [cx+Math.sin(a)*r,cy-Math.cos(a)*r];};
+  let rings=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="#f7f9fc" stroke="#e3e9f1" stroke-width="1"/><circle cx="${cx}" cy="${cy}" r="${R/2}" fill="none" stroke="#e3e9f1" stroke-width="0.7" stroke-dasharray="2 2.4"/>`;
+  let labs="";
+  for(const [a,t] of [[0,'N'],[90,'O'],[180,'S'],[270,'W']]){const x=cx+Math.sin(a*Math.PI/180)*(R+5.5),y=cy-Math.cos(a*Math.PI/180)*(R+5.5);labs+=`<text x="${x.toFixed(1)}" y="${(y+2.6).toFixed(1)}" font-size="6.5" text-anchor="middle" fill="#8693a6" font-weight="700">${t}</text>`;}
+  const tr=p.track; let d="";
+  tr.forEach((q,i)=>{const [x,y]=pol(q.az,q.el);d+=(i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1);});
+  const path=`<path d="${d}" fill="none" stroke="#6d5dd3" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const arrow=(i0,i1)=>{const [x0,y0]=pol(tr[i0].az,tr[i0].el),[x1,y1]=pol(tr[i1].az,tr[i1].el);
+    const ang=Math.atan2(y1-y0,x1-x0),L=4.4,w=2.6,bx=x1-Math.cos(ang)*L,by=y1-Math.sin(ang)*L,pxx=Math.sin(ang),pyy=-Math.cos(ang);
+    return `<polygon points="${x1.toFixed(1)},${y1.toFixed(1)} ${(bx+pxx*w).toFixed(1)},${(by+pyy*w).toFixed(1)} ${(bx-pxx*w).toFixed(1)},${(by-pyy*w).toFixed(1)}" fill="#6d5dd3"/>`;};
+  const n=tr.length;
+  const [sx,sy]=pol(tr[0].az,tr[0].el), [ex,ey]=pol(tr[n-1].az,tr[n-1].el);
+  const startDot=`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="1.9" fill="#6d5dd3"/>`;
+  const inA=n>4?arrow(2,4):"", outA=n>4?arrow(n-3,n-1):"";
+  const sLab=`<text x="${sx.toFixed(1)}" y="${(sy+(sy>cy?7:-4)).toFixed(1)}" font-size="5" text-anchor="middle" fill="#6d5dd3" font-weight="700">Start</text>`;
+  const eLab=`<text x="${ex.toFixed(1)}" y="${(ey+(ey>cy?7:-4)).toFixed(1)}" font-size="5" text-anchor="middle" fill="#6d5dd3" font-weight="700">Ende</text>`;
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100">${rings}${labs}${path}${startDot}${inA}${outA}${sLab}${eLab}</svg>`;
+}
+function issMainHTML(p,now){
+  const cloud=issCloudAt(p.start), [acol,atxt]=issAmpel(cloud);
+  const good=cloud!=null&&cloud<=33;
+  return `<div class="iss-main"><div class="iss-polar">${issPolarSVG(p,124)}</div>
+    <div class="iss-data"><div class="iss-time">${issTime(p.start)}</div>
+    <div class="iss-cd" id="issCd">${issCountdown(p.start,now)}</div>
+    <div class="iss-l1">${issDir(p.startAz)} → ${issDir(p.endAz)} · ${Math.round(p.durSec/60)} Min</div>
+    <div class="iss-l1">max. ${Math.round(p.maxEl)}° hoch · ${p.mag.toFixed(1).replace(".",",")} mag</div>
+    <div class="iss-amp"><span class="iss-dot" style="background:${acol}"></span><span style="color:${acol};font-weight:700">Himmel ${atxt}${good?' → gut sichtbar':''}</span></div></div></div>`;
+}
+function issListHTML(passes,now){
+  if(!passes.length)return `<div class="iss-empty">Keine weiteren sichtbaren Überflüge in den nächsten Tagen.</div>`;
+  let h=`<div class="iss-lhead"><span>Wann</span><span>Richtung</span><span>Höhe</span><span>Sicht</span></div>`;
+  for(const p of passes){
+    const cloud=issCloudAt(p.start), [acol,atxt]=issAmpel(cloud), grob=(p.start-now)>3*86400000;
+    h+=`<div class="iss-row${grob?' grob':''}"><span class="iss-when">${issWhen(p.start,now)} <b>${grob?'~':''}${issTime(p.start)}</b></span><span class="iss-ri">${issDir(p.startAz)} → ${issDir(p.endAz)}</span><span class="iss-h">${Math.round(p.maxEl)}°</span><span class="iss-amp"><span class="iss-dot" style="background:${acol}"></span>${atxt}</span></div>`;
+  }
+  return `<div class="iss-list">`+h+`</div>`;
+}
+function renderIss(){
+  if(!_issPasses)return; const now=new Date();
+  const upcoming=_issPasses.filter(p=>p.end>now), visible=upcoming.filter(p=>p.visible);
+  const sec=el('issSec');
+  if(!upcoming.length){sec.classList.add('hidden');return;}
+  sec.classList.remove('hidden');
+  const main=visible[0]||upcoming[0];
+  el('issMain').innerHTML=issMainHTML(main,now);
+  const rest=visible.filter(p=>p!==main).slice(0,6);
+  el('issList').innerHTML=issListHTML(rest,now);
+}
+async function fetchIssTLE(){
+  const r=await fetch('https://api.wheretheiss.at/v1/satellites/25544/tles?format=text');
+  if(!r.ok)throw new Error('TLE HTTP '+r.status);
+  const lines=(await r.text()).trim().split('\n').map(s=>s.trim());
+  let l1,l2; for(const ln of lines){if(ln.startsWith('1 '))l1=ln;else if(ln.startsWith('2 '))l2=ln;}
+  if(!l1||!l2)throw new Error('TLE-Format unerwartet');
+  return window.satellite.twoline2satrec(l1,l2);
+}
+async function loadIss(){
+  try{
+    if(!window.satellite){console.warn('satellite.js fehlt');return;}
+    el('issSec').classList.remove('hidden');
+    el('issMain').innerHTML='<div class="iss-load">ISS-Bahn wird berechnet…</div>'; el('issList').innerHTML='';
+    _issSat=await fetchIssTLE();
+    _issPasses=issComputePasses(_issSat,5);
+    renderIss();
+    if(_issTimer)clearInterval(_issTimer);
+    _issTimer=setInterval(()=>{
+      const cd=el('issCd'); if(cd&&_issPasses){const now=new Date();const up=_issPasses.filter(p=>p.end>now);const vis=up.filter(p=>p.visible);const m=vis[0]||up[0];if(m){if(m.start<=now||cd.dataset.t!=String(m.start.getTime()))renderIss();else cd.textContent=issCountdown(m.start,now);}}
+    },30000);
+  }catch(e){console.warn('iss',e.message);el('issSec').classList.add('hidden');}
 }
 
 el("refresh").onclick=()=>load();
