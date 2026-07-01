@@ -268,7 +268,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.20</span>
+      <span class="ver">v2.21</span>
     </div>
   </header>
 
@@ -1413,8 +1413,8 @@ const SKY_KEYS=[
   [  4,'#5b95c9','#8fbbde','#eed7a6','#17324a','#88a9c4','#35597a','#4a708f','#7188a3'],
   [ -3,'#33567e','#4d6f96','#e8a765','#dbe4ee','#3f5a79','#8fa3b8','#5f7893','#cfd8e6'],
   [ -8,'#17293f','#22374f','#7a5a48','#d3dce8','#2a3d55','#7c8ba0','#5a6d84','#cfd8e6'],
-  [-13,'#0e1a2c','#131f31','#33291f','#c7d0dc','#20304a','#6b7789','#5a6675','#cfd8e6'],
-  [-18,'#0a1220','#0f1826','#1c1712','#c7d0dc','#1a2531','#6b7789','#5a6675','#cfd8e6']
+  [-13,'#0e1a2c','#131f31','#1f2735','#c7d0dc','#20304a','#6b7789','#5a6675','#cfd8e6'],
+  [-18,'#0a1220','#0f1826','#121a2a','#c7d0dc','#1a2531','#6b7789','#5a6675','#cfd8e6']
 ];
 function plLerpHex(a,b,t){const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16);
   const r=Math.round((pa>>16&255)+((pb>>16&255)-(pa>>16&255))*t),
@@ -1480,13 +1480,15 @@ function drawPlaneten(){
   ctx.fillStyle=bg;ctx.fillRect(0,mT,W,ph);                // Plot-Band ueber volle Kastenbreite
   ctx.fillStyle=thBot;ctx.fillRect(0,mT+ph,W,H-mT-ph);    // Boden-Rand in Himmelsfarbe
 
-  /* Karte + Bedienelemente folgen dem Himmel: tags hell, nachts dunkel (App ist sonst hell) */
-  const dn=Math.max(0,Math.min(1,(sunSel.alt+8)/12)); // 0 = Nacht, 1 = Tag, Uebergang in der Daemmerung
-  const chipBg=rgba(plLerpHex('#0a0f1a','#ffffff',dn),.80),
-    chipBd=rgba(plLerpHex('#ffffff','#17324a',dn),.25),
-    chipInk=plLerpHex('#e7edf5','#17324a',dn),
-    chipMut=plLerpHex('#93a0b0','#5c748c',dn),
-    chipAcc=plLerpHex('#ffd66b','#8a5200',dn);
+  /* Karte + Bedienelemente folgen dem Himmel: tags hell, nachts dunkel (App ist sonst hell).
+     Chips schalten DISKRET bei Sonne +5° (frueh vor Sonnenuntergang) — die CSS-Transition
+     blendet weich; ein kontinuierlicher Verlauf ergab unlesbares Grau-auf-Grau im Uebergang. */
+  const dk=sunSel.alt<5;
+  const chipBg=dk?'rgba(10,15,26,.80)':'rgba(255,255,255,.80)',
+    chipBd=dk?'rgba(255,255,255,.25)':'rgba(23,50,74,.25)',
+    chipInk=dk?'#e7edf5':'#17324a',
+    chipMut=dk?'#93a0b0':'#5c748c',
+    chipAcc=dk?'#ffd66b':'#8a5200';
   const card=cv.parentElement?cv.parentElement.parentElement:null;
   if(card&&card.style&&card.style.setProperty){
     card.style.background=thBot;card.style.borderColor=rgba(thInk,.20);
@@ -1499,6 +1501,14 @@ function drawPlaneten(){
   ctx.font='9px system-ui,sans-serif';
   for(let a=Math.ceil(azMin/15)*15;a<=azMax;a+=15){ctx.strokeStyle=rgba(thGrid,.55);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(a),mT);ctx.lineTo(X(a),mT+ph);ctx.stroke();}
   for(let al=Math.ceil(altMin/10)*10;al<=altMax;al+=10){ctx.strokeStyle=al===0?thZero:rgba(thGrid,.55);ctx.lineWidth=al===0?2:1;ctx.beginPath();ctx.moveTo(mL,Y(al));ctx.lineTo(mL+pw,Y(al));ctx.stroke();ctx.fillStyle=thAxis;ctx.textAlign='right';ctx.fillText(al+'\u00b0',mL-4,Y(al)+3);}
+  /* Zone oberhalb altMax (komprimierte Sonnenbahn): eigene Skala, gestrichelt markiert */
+  {const zs=(mT-10)/(70-altMax);                    // px pro Grad in der Zone
+   const step=zs*10<13?20:10;                        // bei enger Zone nur jede 20°-Marke
+   ctx.font='8.5px system-ui,sans-serif';ctx.textAlign='right';ctx.setLineDash([3,4]);
+   for(let al=70;al>altMax+step*0.35;al-=step){const yz=mT-(al-altMax)*zs;
+     ctx.strokeStyle=rgba(thGrid,.45);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(mL,yz);ctx.lineTo(mL+pw,yz);ctx.stroke();
+     ctx.fillStyle=rgba(thAxis,.95);ctx.fillText(al+'\u00b0',mL-4,yz+3);}
+   ctx.setLineDash([]);ctx.font='9px system-ui,sans-serif';}
   const baseY=mT+ph;
   const compass={0:'N',45:'NO',90:'O',135:'SO',180:'S',225:'SW',270:'W',315:'NW',360:'N'};
   ctx.textAlign='center';
@@ -1525,6 +1535,14 @@ function drawPlaneten(){
       sc.fillStyle='#ffdf6b';sc.beginPath();sc.arc(x,y,4.8,0,7);sc.fill();};
     sc.save();sc.beginPath();sc.rect(0,0,W,Math.max(0,yHor));sc.clip();drawSun(14);sc.restore();
     sc.save();sc.beginPath();sc.rect(0,yHor,W,Math.max(0,H-yHor));sc.clip();sc.globalAlpha=.32;drawSun(4);sc.restore();
+    if(sunSel.alt>altMax){ // in der Zone gilt eine andere Skala -> Gradzahl direkt an der Sonne
+      sc.save();sc.font='700 10px system-ui,sans-serif';sc.textBaseline='middle';
+      const left=x>238;sc.textAlign=left?'right':'left';
+      sc.fillStyle=dk?'#ffe9a8':'#17324a';
+      sc.shadowColor=dk?'rgba(0,0,0,.55)':'rgba(255,255,255,.65)';sc.shadowBlur=3;
+      sc.fillText(Math.round(sunSel.alt)+'\u00b0',left?x-16:x+16,y);
+      sc.restore();
+    }
   }
 
   /* Detail-Portraets (portiert aus Planetenbahnen v5.5) — deterministische Oberflaechen */
