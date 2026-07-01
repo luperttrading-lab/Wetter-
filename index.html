@@ -144,20 +144,21 @@
   .alert.extreme{background:#fdf2f8;border-color:#e9a8d4;color:#86166a}
   /* Nowcast */
   .nowcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:14px 15px 11px}
-  .pl-card{background:#0b1320;border:1px solid #1a2838;padding:0 0 11px;overflow:hidden}
+  .pl-card{background:#0b1320;border:1px solid #1a2838;padding:0 0 11px;overflow:hidden;transition:background .3s,border-color .3s}
   .sec-err{font-size:12.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:11px 13px}
   .pl-wrap{position:relative}
   #planetenCv{width:100%;display:block}
-  .pl-wheel{position:absolute;top:8px;right:8px;width:76px;text-align:center;background:rgba(8,14,24,.74);border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:5px 0 4px;touch-action:none;user-select:none;-webkit-user-select:none;color:#e7edf5;font-variant-numeric:tabular-nums;cursor:ns-resize}
-  .pw-a{font-size:11px;color:#93a0b0;height:15px;line-height:15px}
-  .pw-b{font-size:16px;font-weight:800;height:21px;line-height:21px;color:#ffd66b}
-  .pl-now{position:absolute;top:8px;left:8px;background:rgba(8,14,24,.74);border:1px solid rgba(255,255,255,.16);border-radius:11px;color:#e7edf5;font:700 12.5px/1 -apple-system,system-ui,sans-serif;padding:9px 12px;opacity:.5}
-  .pl-now.on{opacity:1;border-color:#ffd66b;color:#ffd66b}
+  #planetenSunCv{position:absolute;left:0;top:0;width:100%;pointer-events:none;z-index:3}
+  .pl-wheel{position:absolute;top:8px;right:8px;z-index:2;width:76px;text-align:center;background:var(--chipBg,rgba(8,14,24,.74));border:1px solid var(--chipBd,rgba(255,255,255,.16));border-radius:11px;padding:5px 0 4px;touch-action:none;user-select:none;-webkit-user-select:none;color:var(--chipInk,#e7edf5);font-variant-numeric:tabular-nums;cursor:ns-resize;transition:background .3s,border-color .3s,color .3s}
+  .pw-a{font-size:11px;color:var(--chipMut,#93a0b0);height:15px;line-height:15px;transition:color .3s}
+  .pw-b{font-size:16px;font-weight:800;height:21px;line-height:21px;color:var(--chipAcc,#ffd66b);transition:color .3s}
+  .pl-now{position:absolute;top:8px;left:8px;z-index:2;background:var(--chipBg,rgba(8,14,24,.74));border:1px solid var(--chipBd,rgba(255,255,255,.16));border-radius:11px;color:var(--chipInk,#e7edf5);font:700 12.5px/1 -apple-system,system-ui,sans-serif;padding:9px 12px;opacity:.5;transition:background .3s,border-color .3s,color .3s}
+  .pl-now.on{opacity:1;border-color:var(--chipAcc,#ffd66b);color:var(--chipAcc,#ffd66b)}
   .pl-leg{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;align-content:flex-start;margin-top:11px;padding:0 12px;min-height:38px}
-  .pl-item{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#c7d0dc;font-weight:600}
+  .pl-item{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--plInk,#c7d0dc);font-weight:600;transition:color .3s}
   .pl-dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 5px currentColor}
-  .pl-empty{font-size:12.5px;color:#8a97a5;padding:4px}
-  .pl-note{margin-top:9px;padding:0 12px;text-align:center;font-size:11px;color:#7a8494}
+  .pl-empty{font-size:12.5px;color:var(--plMut,#8a97a5);padding:4px;transition:color .3s}
+  .pl-note{margin-top:9px;padding:0 12px;text-align:center;font-size:11px;color:var(--plMut,#7a8494);transition:color .3s}
   .umk-row{display:flex;gap:10px;justify-content:center;align-items:flex-start}
   .umk-col{flex:1;min-width:0}
   .umk-cap{text-align:center;font-size:11.5px;font-weight:800;margin-bottom:5px;letter-spacing:.01em}
@@ -267,7 +268,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.19</span>
+      <span class="ver">v2.20</span>
     </div>
   </header>
 
@@ -305,7 +306,7 @@
     <div class="sect">Details</div>
     <div class="grid" id="grid"></div>
     <div id="airSec" class="hidden"><div class="sect">UV &amp; Mond</div><div class="grid" id="gridAir"></div></div>
-    <div id="planetenSec" class="hidden"><div class="sect">Planeten am Himmel</div><div class="nowcard pl-card"><div class="pl-wrap"><canvas id="planetenCv"></canvas><div id="plWheel" class="pl-wheel"><div class="pw-a" id="pwPrev"></div><div class="pw-b" id="pwCur"></div><div class="pw-a" id="pwNext"></div></div><button id="plNow" class="pl-now">Jetzt</button></div><div id="planetenLeg" class="pl-leg"></div><div class="pl-note">Planeten sichtbar bei D&auml;mmerung &middot; Mond ganzt&auml;gig</div></div></div>
+    <div id="planetenSec" class="hidden"><div class="sect">Planeten am Himmel</div><div class="nowcard pl-card"><div class="pl-wrap"><canvas id="planetenCv"></canvas><div id="plWheel" class="pl-wheel"><div class="pw-a" id="pwPrev"></div><div class="pw-b" id="pwCur"></div><div class="pw-a" id="pwNext"></div></div><button id="plNow" class="pl-now">Jetzt</button><canvas id="planetenSunCv"></canvas></div><div id="planetenLeg" class="pl-leg"></div><div class="pl-note">Planeten sichtbar bei D&auml;mmerung &middot; Mond ganzt&auml;gig</div></div></div>
     <div id="issSec" class="hidden"><div class="sect">ISS-Überflüge</div><div id="issMain"></div><div id="issList"></div></div>
   </div>
 
@@ -1430,6 +1431,7 @@ function skyTheme(sunAlt){
   return K[K.length-1].slice(1);
 }
 function plNowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
+function plQ5(m){return m-(((m%5)+5)%5);} // letzte volle 5-Minuten-Marke
 function drawPlaneten(){
   const cv=el("planetenCv");if(!cv)return;
   const W=cv.clientWidth;if(!W||W<140)return;
@@ -1437,10 +1439,14 @@ function drawPlaneten(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
   cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+"px";
   const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  /* Sonnen-Overlay liegt UEBER Drehrad/Jetzt -> Sonne laeuft vor den Bedienelementen vorbei */
+  const sv=el("planetenSunCv");let sctx=null;
+  if(sv&&sv.getContext){sv.width=W*dpr;sv.height=H*dpr;sv.style.height=H+"px";
+    sctx=sv.getContext("2d");sctx.setTransform(dpr,0,0,dpr,0,0);sctx.clearRect(0,0,W,H);}
 
   const now=new Date();
   const dayBase=jdFromDate(now.getFullYear(),now.getMonth()+1,now.getDate());
-  const selMin=PL_STATE.min!=null?PL_STATE.min:plNowMin();
+  const selMin=PL_STATE.min!=null?PL_STATE.min:plQ5(plNowMin());
   const jdSel=dayBase+selMin/1440;
 
   /* Tagesboegen + Fit haengen nur vom Datum ab -> Cache (fluessiges Drehen) */
@@ -1474,6 +1480,22 @@ function drawPlaneten(){
   ctx.fillStyle=bg;ctx.fillRect(0,mT,W,ph);                // Plot-Band ueber volle Kastenbreite
   ctx.fillStyle=thBot;ctx.fillRect(0,mT+ph,W,H-mT-ph);    // Boden-Rand in Himmelsfarbe
 
+  /* Karte + Bedienelemente folgen dem Himmel: tags hell, nachts dunkel (App ist sonst hell) */
+  const dn=Math.max(0,Math.min(1,(sunSel.alt+8)/12)); // 0 = Nacht, 1 = Tag, Uebergang in der Daemmerung
+  const chipBg=rgba(plLerpHex('#0a0f1a','#ffffff',dn),.80),
+    chipBd=rgba(plLerpHex('#ffffff','#17324a',dn),.25),
+    chipInk=plLerpHex('#e7edf5','#17324a',dn),
+    chipMut=plLerpHex('#93a0b0','#5c748c',dn),
+    chipAcc=plLerpHex('#ffd66b','#8a5200',dn);
+  const card=cv.parentElement?cv.parentElement.parentElement:null;
+  if(card&&card.style&&card.style.setProperty){
+    card.style.background=thBot;card.style.borderColor=rgba(thInk,.20);
+    const st=card.style;
+    st.setProperty('--chipBg',chipBg);st.setProperty('--chipBd',chipBd);st.setProperty('--chipInk',chipInk);
+    st.setProperty('--chipMut',chipMut);st.setProperty('--chipAcc',chipAcc);
+    st.setProperty('--plInk',thInk);st.setProperty('--plMut',plLerpHex(thInk,thBot,.42));
+  }
+
   ctx.font='9px system-ui,sans-serif';
   for(let a=Math.ceil(azMin/15)*15;a<=azMax;a+=15){ctx.strokeStyle=rgba(thGrid,.55);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(a),mT);ctx.lineTo(X(a),mT+ph);ctx.stroke();}
   for(let al=Math.ceil(altMin/10)*10;al<=altMax;al+=10){ctx.strokeStyle=al===0?thZero:rgba(thGrid,.55);ctx.lineWidth=al===0?2:1;ctx.beginPath();ctx.moveTo(mL,Y(al));ctx.lineTo(mL+pw,Y(al));ctx.stroke();ctx.fillStyle=thAxis;ctx.textAlign='right';ctx.fillText(al+'\u00b0',mL-4,Y(al)+3);}
@@ -1489,18 +1511,20 @@ function drawPlaneten(){
     ctx.fillStyle=rgba(col,.85);for(const p of arc)if(p.vis&&p.t%60===0){ctx.beginPath();ctx.arc(X(p.az),Y(p.alt),1.4,0,7);ctx.fill();}});
 
   /* Sonne als Marker: ueber dem Horizont voll, der Teil darunter matt.
-     Steigt sie ueber den Plotrand, laeuft sie komprimiert in der Zone darueber weiter. */
+     Steigt sie ueber den Plotrand, laeuft sie komprimiert in der Zone darueber weiter.
+     Gezeichnet auf dem Overlay -> laeuft VOR Drehrad und Jetzt-Knopf vorbei. */
   const yHor=Y(0);
   if(sunSel.alt>-10&&sunSel.az>azMin&&sunSel.az<azMax){
+    const sc=sctx||ctx;
     const x=X(sunSel.az);
     const y=sunSel.alt<=altMax?Y(sunSel.alt):(mT-(sunSel.alt-altMax)/(70-altMax)*(mT-10));
-    const drawSun=blur=>{ctx.shadowColor='#ffb14a';ctx.shadowBlur=blur;
-      ctx.strokeStyle='#ffb14a';ctx.lineWidth=2;ctx.lineCap='round';
+    const drawSun=blur=>{sc.shadowColor='#ffb14a';sc.shadowBlur=blur;
+      sc.strokeStyle='#ffb14a';sc.lineWidth=2;sc.lineCap='round';
       for(let r0=0;r0<8;r0++){const a=r0*Math.PI/4;
-        ctx.beginPath();ctx.moveTo(x+Math.cos(a)*7,y+Math.sin(a)*7);ctx.lineTo(x+Math.cos(a)*11,y+Math.sin(a)*11);ctx.stroke();}
-      ctx.fillStyle='#ffdf6b';ctx.beginPath();ctx.arc(x,y,4.8,0,7);ctx.fill();};
-    ctx.save();ctx.beginPath();ctx.rect(mL,2,pw,Math.max(0,yHor-2));ctx.clip();drawSun(14);ctx.restore();
-    ctx.save();ctx.beginPath();ctx.rect(mL,yHor,pw,Math.max(0,mT+ph-yHor));ctx.clip();ctx.globalAlpha=.32;drawSun(4);ctx.restore();
+        sc.beginPath();sc.moveTo(x+Math.cos(a)*7,y+Math.sin(a)*7);sc.lineTo(x+Math.cos(a)*11,y+Math.sin(a)*11);sc.stroke();}
+      sc.fillStyle='#ffdf6b';sc.beginPath();sc.arc(x,y,4.8,0,7);sc.fill();};
+    sc.save();sc.beginPath();sc.rect(0,0,W,Math.max(0,yHor));sc.clip();drawSun(14);sc.restore();
+    sc.save();sc.beginPath();sc.rect(0,yHor,W,Math.max(0,H-yHor));sc.clip();sc.globalAlpha=.32;drawSun(4);sc.restore();
   }
 
   /* Detail-Portraets (portiert aus Planetenbahnen v5.5) — deterministische Oberflaechen */
@@ -1566,7 +1590,7 @@ function drawPlaneten(){
 
   /* Wheel + Jetzt-Button + Legende */
   const f2=v=>String(v).padStart(2,'0'),fmtMin=m=>{const mm=((m%1440)+1440)%1440;return f2(Math.floor(mm/60))+':'+f2(mm%60);};
-  if(el("pwCur")){el("pwPrev").textContent=fmtMin(selMin-15);el("pwCur").textContent=fmtMin(selMin);el("pwNext").textContent=fmtMin(selMin+15);}
+  if(el("pwCur")){el("pwPrev").textContent=fmtMin(selMin-5);el("pwCur").textContent=fmtMin(selMin);el("pwNext").textContent=fmtMin(selMin+5);}
   const nb=el("plNow");if(nb)nb.classList.toggle("on",PL_STATE.min!=null);
   const leg=el("planetenLeg");if(leg){
     const D16=['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'],dir=az=>D16[Math.round(az/22.5)%16];
@@ -1575,25 +1599,25 @@ function drawPlaneten(){
       :(sunSel.alt>=PL_DUSK?'<span class="pl-empty">Zu hell &ndash; die Kurven zeigen die Nacht</span>':'<span class="pl-empty">Kein Planet \u00fcber dem Horizont</span>');
   }
 }
-/* --- Uhrzeit-Drehrad: vertikaler Drag in 15-Minuten-Schritten (iOS-sicher) --- */
+/* --- Uhrzeit-Drehrad: vertikaler Drag in 5-Minuten-Schritten (iOS-sicher) --- */
 let _plDrag=false,_plY0=0,_plMin0=0,_plMoved=0;
 function setPlMin(m){PL_STATE.min=((Math.round(m)%1440)+1440)%1440;drawPlaneten();}
 function initPlWheel(){
   const w=el("plWheel"),nb=el("plNow");if(!w||w._init)return;w._init=true;
-  const start=y=>{_plDrag=true;_plY0=y;_plMin0=PL_STATE.min!=null?PL_STATE.min:plNowMin();_plMoved=0;};
+  const start=y=>{_plDrag=true;_plY0=y;_plMin0=PL_STATE.min!=null?PL_STATE.min:plQ5(plNowMin());_plMoved=0;};
   w.addEventListener("touchstart",e=>start(e.touches[0].clientY),{passive:true});
   w.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")start(e.clientY);});
   document.addEventListener("pointermove",e=>{if(!_plDrag)return;
     const dy=e.clientY-_plY0;_plMoved=Math.max(_plMoved,Math.abs(dy));
-    const st=Math.round(-dy/16);
-    const q=Math.round(_plMin0/15)*15+st*15;
+    const st=Math.round(-dy/8);
+    const q=Math.round(_plMin0/5)*5+st*5;
     if(PL_STATE.min===null||q!==PL_STATE.min)setPlMin(q);});
   document.addEventListener("touchmove",e=>{if(_plDrag)e.preventDefault();},{passive:false});
   const stop=()=>{_plDrag=false;};
   document.addEventListener("pointerup",stop);document.addEventListener("pointercancel",stop);
   document.addEventListener("touchend",stop);document.addEventListener("touchcancel",stop);
-  el("pwPrev").addEventListener("click",()=>{if(_plMoved>6)return;setPlMin((PL_STATE.min!=null?PL_STATE.min:plNowMin())-15);});
-  el("pwNext").addEventListener("click",()=>{if(_plMoved>6)return;setPlMin((PL_STATE.min!=null?PL_STATE.min:plNowMin())+15);});
+  el("pwPrev").addEventListener("click",()=>{if(_plMoved>6)return;setPlMin((PL_STATE.min!=null?PL_STATE.min:plQ5(plNowMin()))-5);});
+  el("pwNext").addEventListener("click",()=>{if(_plMoved>6)return;setPlMin((PL_STATE.min!=null?PL_STATE.min:plQ5(plNowMin()))+5);});
   nb.addEventListener("click",()=>{PL_STATE.min=null;drawPlaneten();});
 }
 function renderPlaneten(){const sec=el("planetenSec");if(!sec)return;sec.classList.remove("hidden");initPlWheel();drawPlaneten();}
