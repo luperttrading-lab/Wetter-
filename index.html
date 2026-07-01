@@ -145,6 +145,7 @@
   /* Nowcast */
   .nowcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:14px 15px 11px}
   .pl-card{background:#0b1320;border:1px solid #1a2838;padding:12px 12px 11px}
+  .sec-err{font-size:12.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:11px 13px}
   .pl-wrap{position:relative}
   #planetenCv{width:100%;display:block}
   .pl-wheel{position:absolute;top:8px;right:8px;width:76px;text-align:center;background:rgba(8,14,24,.74);border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:5px 0 4px;touch-action:none;user-select:none;-webkit-user-select:none;color:#e7edf5;font-variant-numeric:tabular-nums;cursor:ns-resize}
@@ -266,7 +267,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.17</span>
+      <span class="ver">v2.18</span>
     </div>
   </header>
 
@@ -1661,6 +1662,32 @@ function drawWolken(){
 }
 
 /* --- Lader (parallel, fehlertolerant) --- */
+/* Cache-Lader: frische Daten aus localStorage (ttlFresh), sonst Fetch;
+   bei Fetch-Fehler Fallback auf aeltere Cache-Daten (ttlStale), sonst sichtbare Meldung. */
+function loadCached(key,url,ttlFresh,ttlStale,render,secId,label){
+  let c=null;try{c=JSON.parse(localStorage.getItem(key)||"null");}catch(e){}
+  const age=c?Date.now()-c.t:Infinity;
+  const restore=()=>{const sec=el(secId);if(!sec)return;
+    const err=sec.querySelector(".sec-err");if(err)err.remove();
+    [...sec.children].forEach(ch=>{if(!ch.classList.contains("sect"))ch.classList.remove("hidden");});};
+  if(c&&age<ttlFresh){restore();try{render(c.d);}catch(e){console.warn(key,e);}return;}
+  fetchJSON(url).then(d=>{
+    try{localStorage.setItem(key,JSON.stringify({t:Date.now(),d}));}catch(e){}
+    restore();render(d);
+  }).catch(e=>{
+    console.warn(key,e.message);
+    if(c&&age<ttlStale){try{restore();render(c.d);return;}catch(e2){}}
+    const sec=el(secId);if(!sec)return;
+    sec.classList.remove("hidden");
+    const is429=/429/.test(e.message);
+    let err=sec.querySelector(".sec-err");
+    if(!err){err=document.createElement("div");err.className="sec-err";
+      const sect=sec.querySelector(".sect");
+      sect?sect.insertAdjacentElement("afterend",err):sec.prepend(err);}
+    err.textContent=label+": "+(is429?"Tageslimit der Gratis-Wetterdaten erreicht \u2013 ab ca. 2 Uhr wieder verf\u00fcgbar.":"keine Daten ("+e.message+")");
+    [...sec.children].forEach(ch=>{if(!ch.classList.contains("sect")&&!ch.classList.contains("sec-err"))ch.classList.add("hidden");});
+  });
+}
 function loadNowcast(){
   fetchJSON(`https://api.brightsky.dev/radar?lat=${LAT}&lon=${LON}&distance=1000&format=plain&tz=Europe/Berlin&date=${encodeURIComponent(new Date().toISOString())}`,11000).then(renderNowcast).catch(e=>{el("nowcastSec").classList.add("hidden");console.warn("radar",e.message);});
 }
@@ -1680,14 +1707,14 @@ function maybeRefresh(){
 document.addEventListener("visibilitychange",maybeRefresh);
 window.addEventListener("pageshow",e=>{if(e.persisted)maybeRefresh();});
 function loadExtras(){
-  renderAirGrid(null); // Mond sofort, Rest folgt
-  renderPlaneten();    // Planeten am Himmel (rein berechnet, kein Fetch)
+  try{renderAirGrid(null);}catch(e){console.warn("airgrid",e);}   // Mond sofort, Rest folgt
+  try{renderPlaneten();}catch(e){console.warn("planeten",e);}     // rein berechnet, kein Fetch
   const ll=`latitude=${LAT}&longitude=${LON}`;
   fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&hourly=precipitation,precipitation_probability,weather_code&forecast_days=2&timezone=Europe%2FBerlin`).then(d=>{renderRainHours(d);renderPrecipToday(d);}).catch(e=>{el("rainHrSec").classList.add("hidden");console.warn("rainhr",e.message);});
   renderRadolan(); // genauere DWD-Radar-Tagessumme; ueberschreibt den Open-Meteo-Wert oben, sobald da
-  fetchJSON(wolkenURL()).then(renderWolken).catch(e=>{el("wolkenSec").classList.add("hidden");console.warn("wolken",e.message);});
+  loadCached("wolkCache",wolkenURL(),10*60e3,6*3600e3,renderWolken,"wolkenSec","Wolkenkarte");
   fetchJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${ll}&current=uv_index,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,ragweed_pollen&hourly=uv_index,uv_index_clear_sky&past_days=1&forecast_days=1&timezone=Europe%2FBerlin`).then(renderAirGrid).catch(e=>console.warn("air",e.message));
-  fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&forecast_days=16&timezone=Europe%2FBerlin`).then(renderForecast).catch(e=>{el("fcSec").classList.add("hidden");console.warn("fc",e.message);});
+  loadCached("fcCache",`https://api.open-meteo.com/v1/forecast?${ll}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&forecast_days=16&timezone=Europe%2FBerlin`,10*60e3,12*3600e3,renderForecast,"fcSec","16-Tage-Vorhersage");
   loadIss();
   loadNowcast();
   fetchJSON(`https://api.brightsky.dev/alerts?lat=${LAT}&lon=${LON}`).then(renderAlerts).catch(e=>console.warn("alerts",e.message));
