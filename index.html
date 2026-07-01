@@ -253,7 +253,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.06</span>
+      <span class="ver">v2.07</span>
     </div>
   </header>
 
@@ -286,7 +286,7 @@
     <div id="nowcastSec" class="hidden"><div class="sect">Niederschlag · nächste 2 Std</div><div class="nowcard" id="nowcard"></div></div>
     <div id="rainHrSec" class="hidden"><div class="sect">Regen · nächste 24 Std</div><div class="nowcard" id="rainHrCard"></div></div>
     <div id="umkreisSec" class="hidden"><div class="sect">Regen im Umkreis · heute</div><div class="nowcard" id="umkreisCard"></div></div>
-    <div id="wolkenSec" class="hidden"><div class="sect">Wolken im Umkreis · jetzt</div><div class="nowcard"><canvas id="wolkenCv"></canvas><div class="uvnote" style="margin-top:8px;text-align:center">wei&#223; = Wolken &#183; freie Sicht auf die Karte = klarer Himmel &#183; <span style="color:#e8000b">&#9679;</span> dein Standort<br>Untergrund: Esri-Satellit &#183; Wolken: Open-Meteo-Modell, stündlich</div></div></div>
+    <div id="wolkenSec" class="hidden"><div class="sect" id="wolkenTitle">Wolken im Umkreis</div><div class="nowcard"><canvas id="wolkenCv"></canvas><div class="uvnote" style="margin-top:8px;text-align:center">wei&#223; = Wolken &#183; freie Sicht auf die Karte = klarer Himmel &#183; <span style="color:#e8000b">&#9679;</span> dein Standort<br>Untergrund: Esri-Satellit &#183; Wolken: Open-Meteo-Modell, stündlich</div></div></div>
     <div id="fcSec" class="hidden"><div class="sect">16-Tage-Vorhersage</div><div class="card-list" id="fcList"></div></div>
     <div class="sect">Details</div>
     <div class="grid" id="grid"></div>
@@ -1284,8 +1284,9 @@ const WOLK={latN:51.10,latS:50.00,lonW:7.72,lonE:9.58,nx:12,ny:12,z:9};
 const WOLK_TILE="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const WOLK_CITIES=[
   {n:"Marburg",la:50.81,lo:8.77,b:1},{n:"Alsfeld",la:50.75,lo:9.27},
-  {n:"Gie\u00dfen",la:50.58,lo:8.68,b:1},{n:"Wetzlar",la:50.56,lo:8.50},
-  {n:"Friedberg",la:50.34,lo:8.76},{n:"Frankfurt",la:50.11,lo:8.68,b:1}
+  {n:"Herborn",la:50.68,lo:8.30},{n:"Gie\u00dfen",la:50.58,lo:8.68,b:1},
+  {n:"Weilburg",la:50.48,lo:8.26},{n:"Friedberg",la:50.34,lo:8.76},
+  {n:"Frankfurt",la:50.11,lo:8.68,b:1}
 ];
 function wolkenURL(){
   const la=[],lo=[];
@@ -1299,7 +1300,10 @@ function renderWolken(j){
   const arr=Array.isArray(j)?j:(j?[j]:[]);
   if(arr.length<WOLK.nx*WOLK.ny){sec.classList.add("hidden");return;}
   const g=[];for(let r=0;r<WOLK.ny;r++){g[r]=[];for(let c=0;c<WOLK.nx;c++){const o=arr[r*WOLK.nx+c];g[r][c]=(o&&o.current&&o.current.cloud_cover!=null)?+o.current.cloud_cover:0;}}
-  _wolkGrid=g;sec.classList.remove("hidden");drawWolken();
+  _wolkGrid=g;sec.classList.remove("hidden");
+  const tm=(arr[0]&&arr[0].current&&arr[0].current.time)||"";const hh=tm.length>=16?tm.slice(11,16):"";
+  const tt=el("wolkenTitle");if(tt)tt.textContent="Wolken im Umkreis"+(hh?" · Stand "+hh+" Uhr":"");
+  drawWolken();
 }
 let _wolkTok=0;
 function drawWolken(){
