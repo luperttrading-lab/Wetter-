@@ -252,7 +252,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.01</span>
+      <span class="ver">v2.02</span>
     </div>
   </header>
 
@@ -1027,14 +1027,21 @@ function renderUmkreis(j){
 
 /* --- Render: 7-Tage --- */
 let _rainHourly=null,_lastFcJ=null;
-// Fuer HEUTE nur den Rest des Tages (ab der laufenden Stunde) statt der Ganztages-Bilanz: bereits gefallener Regen wird rausgerechnet.
+// Fuer HEUTE nur den Rest des Tages (ab der laufenden Stunde) statt der Ganztages-Bilanz: bereits gefallener Regen/Gewitter wird rausgerechnet.
+function _restWc(codes){// repraesentatives Wettersymbol fuer den Rest des Tages
+  if(!codes.length)return null;
+  const sig=codes.filter(c=>c>=45);// Nebel/Niederschlag/Gewitter -> das schlimmste noch kommende zeigen (Codes grob nach Schwere)
+  if(sig.length)return Math.max(...sig);
+  const cnt={};codes.forEach(c=>cnt[c]=(cnt[c]||0)+1);// sonst reine Bewoelkung: haeufigster Grad
+  return +Object.keys(cnt).reduce((a,b)=>cnt[b]>cnt[a]?b:a);
+}
 function _restToday(){
   const h=_rainHourly;if(!h||!h.time||!h.precipitation)return null;
   const nd=new Date();nd.setMinutes(0,0,0);const nowMs=nd.getTime();
   const yStr=nd.getFullYear()+"-"+String(nd.getMonth()+1).padStart(2,"0")+"-"+String(nd.getDate()).padStart(2,"0");
-  let pp=null,mm=0,n=0;
-  for(let i=0;i<h.time.length;i++){if((h.time[i]||"").slice(0,10)!==yStr)continue;if(new Date(h.time[i]).getTime()<nowMs)continue;n++;if(h.precipitation[i]!=null)mm+=Math.max(0,+h.precipitation[i]||0);if(h.precipitation_probability&&h.precipitation_probability[i]!=null)pp=Math.max(pp==null?0:pp,h.precipitation_probability[i]);}
-  return n?{pp,mm:Math.round(mm*10)/10}:null;
+  let pp=null,mm=0,n=0;const codes=[];
+  for(let i=0;i<h.time.length;i++){if((h.time[i]||"").slice(0,10)!==yStr)continue;if(new Date(h.time[i]).getTime()<nowMs)continue;n++;if(h.precipitation[i]!=null)mm+=Math.max(0,+h.precipitation[i]||0);if(h.precipitation_probability&&h.precipitation_probability[i]!=null)pp=Math.max(pp==null?0:pp,h.precipitation_probability[i]);if(h.weather_code&&h.weather_code[i]!=null)codes.push(h.weather_code[i]);}
+  return n?{pp,mm:Math.round(mm*10)/10,wc:_restWc(codes)}:null;
 }
 function renderForecast(j){
   _lastFcJ=j;
@@ -1050,7 +1057,7 @@ function renderForecast(j){
   let html="";days.forEach((x,i)=>{
     if(i===7)html+=`<div class="fc-div">Langfristtrend</div>`;
     const wd=i===0?"Heute":new Date(x.t+"T12:00:00").toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
-    const ic=wmo(x.wc)[0],left=((x.lo-aMin)/span)*100,width=Math.max(7,((x.hi-x.lo)/span)*100);
+    const ic=wmo((i===0&&_rt&&_rt.wc!=null)?_rt.wc:x.wc)[0],left=((x.lo-aMin)/span)*100,width=Math.max(7,((x.hi-x.lo)/span)*100);
     const _pp=(i===0&&_rt)?_rt.pp:x.pp,_mm=(i===0&&_rt)?_rt.mm:x.mm;
     const ppPct=_pp!=null&&_pp>=10?`${dropMini}${_pp}%`:"";
     const mmShow=_mm!=null&&_mm>=0.1;
@@ -1270,7 +1277,7 @@ function drawBfsOverlay(){
 function loadExtras(){
   renderAirGrid(null); // Mond sofort, Rest folgt
   const ll=`latitude=${LAT}&longitude=${LON}`;
-  fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&hourly=precipitation,precipitation_probability&forecast_days=2&timezone=Europe%2FBerlin`).then(d=>{renderRainHours(d);renderPrecipToday(d);}).catch(e=>{el("rainHrSec").classList.add("hidden");console.warn("rainhr",e.message);});
+  fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&hourly=precipitation,precipitation_probability,weather_code&forecast_days=2&timezone=Europe%2FBerlin`).then(d=>{renderRainHours(d);renderPrecipToday(d);}).catch(e=>{el("rainHrSec").classList.add("hidden");console.warn("rainhr",e.message);});
   renderRadolan(); // genauere DWD-Radar-Tagessumme; ueberschreibt den Open-Meteo-Wert oben, sobald da
   fetchJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${ll}&current=uv_index,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,ragweed_pollen&hourly=uv_index,uv_index_clear_sky&past_days=1&forecast_days=1&timezone=Europe%2FBerlin`).then(renderAirGrid).catch(e=>console.warn("air",e.message));
   fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&forecast_days=16&timezone=Europe%2FBerlin`).then(renderForecast).catch(e=>{el("fcSec").classList.add("hidden");console.warn("fc",e.message);});
