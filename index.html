@@ -253,7 +253,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.07</span>
+      <span class="ver">v2.08</span>
     </div>
   </header>
 
@@ -1283,10 +1283,21 @@ const _smooth=(e0,e1,v)=>{let t=(v-e0)/(e1-e0);t=t<0?0:t>1?1:t;return t*t*(3-2*t
 const WOLK={latN:51.10,latS:50.00,lonW:7.72,lonE:9.58,nx:12,ny:12,z:9};
 const WOLK_TILE="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const WOLK_CITIES=[
-  {n:"Marburg",la:50.81,lo:8.77,b:1},{n:"Alsfeld",la:50.75,lo:9.27},
-  {n:"Herborn",la:50.68,lo:8.30},{n:"Gie\u00dfen",la:50.58,lo:8.68,b:1},
-  {n:"Weilburg",la:50.48,lo:8.26},{n:"Friedberg",la:50.34,lo:8.76},
-  {n:"Frankfurt",la:50.11,lo:8.68,b:1}
+  {n:"Frankenberg",la:51.06,lo:8.80},
+  {n:"Biedenkopf",la:50.91,lo:8.53},
+  {n:"Marburg",la:50.81,lo:8.77,b:1},
+  {n:"Alsfeld",la:50.75,lo:9.27},
+  {n:"Herborn",la:50.68,lo:8.30},
+  {n:"Lauterbach",la:50.64,lo:9.40},
+  {n:"Gie\u00dfen",la:50.58,lo:8.68,b:1},
+  {n:"Weilburg",la:50.48,lo:8.26},
+  {n:"Montabaur",la:50.44,lo:7.83},
+  {n:"Limburg",la:50.39,lo:8.06},
+  {n:"Friedberg",la:50.34,lo:8.76},
+  {n:"Gelnhausen",la:50.20,lo:9.19},
+  {n:"Hanau",la:50.13,lo:8.92},
+  {n:"Frankfurt",la:50.11,lo:8.68,b:1},
+  {n:"Wiesbaden",la:50.08,lo:8.24,b:1}
 ];
 function wolkenURL(){
   const la=[],lo=[];
@@ -1325,11 +1336,23 @@ function drawWolken(){
   const paintOverlay=()=>{
     x.imageSmoothingEnabled=true;x.imageSmoothingQuality="high";
     x.drawImage(oc,0,0,nx,ny,0,0,W,H);
-    WOLK_CITIES.forEach(ci=>{const p=P(ci.la,ci.lo);if(p[0]<-20||p[0]>W+20||p[1]<-10||p[1]>H+10)return;
-      x.fillStyle="rgba(255,255,255,.95)";x.beginPath();x.arc(p[0],p[1],2.6,0,7);x.fill();
-      x.font=(ci.b?"700 12px":"600 11px")+" -apple-system,sans-serif";x.textAlign="left";x.textBaseline="middle";
-      x.lineWidth=3.2;x.strokeStyle="rgba(0,0,0,.6)";x.strokeText(ci.n,p[0]+5,p[1]);x.fillStyle="#fff";x.fillText(ci.n,p[0]+5,p[1]);});
     const s=P(LAT,LON);
+    const placed=[[s[0]-11,s[1]-11,s[0]+11,s[1]+11]];            // Standort-Pin-Bereich sperren
+    const hit=r=>placed.some(p=>!(r[2]<p[0]||r[0]>p[2]||r[3]<p[1]||r[1]>p[3]));
+    WOLK_CITIES.slice().sort((a,b)=>(b.b?1:0)-(a.b?1:0)).forEach(ci=>{      // große Städte zuerst platzieren
+      const p=P(ci.la,ci.lo);if(p[0]<-4||p[0]>W+4||p[1]<-4||p[1]>H+4)return;
+      x.fillStyle="rgba(255,255,255,.95)";x.beginPath();x.arc(p[0],p[1],2.6,0,7);x.fill();
+      const fs=ci.b?12:11;x.font=(ci.b?"700 ":"600 ")+fs+"px -apple-system,sans-serif";
+      const w=x.measureText(ci.n).width,dy=fs+2;
+      const cand=[[p[0]+6,p[1]],[p[0]+6,p[1]+dy],[p[0]+6,p[1]-dy],[p[0]-6-w,p[1]],[p[0]-6-w,p[1]+dy],[p[0]-6-w,p[1]-dy]];
+      let put=null;
+      for(const c of cand){if(c[0]<1||c[0]+w>W-1||c[1]-fs/2<0||c[1]+fs/2>H)continue;
+        const r=[c[0]-1,c[1]-fs/2-1,c[0]+w+1,c[1]+fs/2+1];if(!hit(r)){put=[c[0],c[1],r];break;}}
+      if(!put)return;                                            // kein Platz -> nur Punkt, kein Label
+      x.textAlign="left";x.textBaseline="middle";
+      x.lineWidth=3.2;x.strokeStyle="rgba(0,0,0,.6)";x.strokeText(ci.n,put[0],put[1]);
+      x.fillStyle="#fff";x.fillText(ci.n,put[0],put[1]);
+      placed.push(put[2]);});
     x.fillStyle="rgba(232,0,11,.22)";x.beginPath();x.arc(s[0],s[1],12,0,7);x.fill();
     x.fillStyle="#e8000b";x.beginPath();x.arc(s[0],s[1],6,0,7);x.fill();
     x.lineWidth=2;x.strokeStyle="#fff";x.stroke();
