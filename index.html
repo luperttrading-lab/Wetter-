@@ -144,7 +144,7 @@
   .alert.extreme{background:#fdf2f8;border-color:#e9a8d4;color:#86166a}
   /* Nowcast */
   .nowcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:14px 15px 11px}
-  .pl-card{background:#0b1320;border:1px solid #1a2838;padding:12px 12px 11px}
+  .pl-card{background:#0b1320;border:1px solid #1a2838;padding:0 0 11px;overflow:hidden}
   .sec-err{font-size:12.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:11px 13px}
   .pl-wrap{position:relative}
   #planetenCv{width:100%;display:block}
@@ -153,11 +153,11 @@
   .pw-b{font-size:16px;font-weight:800;height:21px;line-height:21px;color:#ffd66b}
   .pl-now{position:absolute;top:8px;left:8px;background:rgba(8,14,24,.74);border:1px solid rgba(255,255,255,.16);border-radius:11px;color:#e7edf5;font:700 12.5px/1 -apple-system,system-ui,sans-serif;padding:9px 12px;opacity:.5}
   .pl-now.on{opacity:1;border-color:#ffd66b;color:#ffd66b}
-  .pl-leg{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;align-content:flex-start;margin-top:11px;min-height:38px}
+  .pl-leg{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;align-content:flex-start;margin-top:11px;padding:0 12px;min-height:38px}
   .pl-item{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#c7d0dc;font-weight:600}
   .pl-dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 5px currentColor}
   .pl-empty{font-size:12.5px;color:#8a97a5;padding:4px}
-  .pl-note{margin-top:9px;text-align:center;font-size:11px;color:#7a8494}
+  .pl-note{margin-top:9px;padding:0 12px;text-align:center;font-size:11px;color:#7a8494}
   .umk-row{display:flex;gap:10px;justify-content:center;align-items:flex-start}
   .umk-col{flex:1;min-width:0}
   .umk-cap{text-align:center;font-size:11.5px;font-weight:800;margin-bottom:5px;letter-spacing:.01em}
@@ -267,7 +267,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.18</span>
+      <span class="ver">v2.19</span>
     </div>
   </header>
 
@@ -1433,7 +1433,7 @@ function plNowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
 function drawPlaneten(){
   const cv=el("planetenCv");if(!cv)return;
   const W=cv.clientWidth;if(!W||W<140)return;
-  const H=Math.round(W*0.60)+32; // +32px "Ueber-Himmel-Zone" oben fuer die hochlaufende Sonne
+  const H=Math.round(W*0.64)+48; // hoehere Karte: groesseres Plot + mehr Oben-Zone (Drehrad sitzt in der Ecke)
   const dpr=Math.min(window.devicePixelRatio||1,2);
   cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+"px";
   const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
@@ -1464,12 +1464,15 @@ function drawPlaneten(){
       show:dusk&&p.alt>(n==='mond'?-3.2:-1.6),  // Toleranz: Oberrand ragt noch ueber den Horizont
       leg:dusk&&p.alt>0};});
 
-  const mL=26,mR=10,mT=44,mB=22,pw=W-mL-mR,ph=H-mT-mB;
+  const mL=26,mR=10,mT=62,mB=22,pw=W-mL-mR,ph=H-mT-mB;
   const X=az=>mL+(az-azMin)/(azMax-azMin)*pw,Y=al=>mT+(altMax-al)/(altMax-altMin)*ph;
   const rgba=(hex,al)=>{const n=parseInt(hex.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${al})`;};
 
   const [thTop,thMid,thBot,thInk,thGrid,thAxis,thZero,thMoon]=skyTheme(sunSel.alt);
-  const bg=ctx.createLinearGradient(0,mT,0,mT+ph);bg.addColorStop(0,thTop);bg.addColorStop(0.62,thMid);bg.addColorStop(1,thBot);ctx.fillStyle=bg;ctx.fillRect(mL,mT,pw,ph);
+  const bg=ctx.createLinearGradient(0,mT,0,mT+ph);bg.addColorStop(0,thTop);bg.addColorStop(0.62,thMid);bg.addColorStop(1,thBot);
+  ctx.fillStyle=thTop;ctx.fillRect(0,0,W,mT);              // Oben-Zone in Himmelsfarbe (kein dunkler Rand mehr)
+  ctx.fillStyle=bg;ctx.fillRect(0,mT,W,ph);                // Plot-Band ueber volle Kastenbreite
+  ctx.fillStyle=thBot;ctx.fillRect(0,mT+ph,W,H-mT-ph);    // Boden-Rand in Himmelsfarbe
 
   ctx.font='9px system-ui,sans-serif';
   for(let a=Math.ceil(azMin/15)*15;a<=azMax;a+=15){ctx.strokeStyle=rgba(thGrid,.55);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(a),mT);ctx.lineTo(X(a),mT+ph);ctx.stroke();}
