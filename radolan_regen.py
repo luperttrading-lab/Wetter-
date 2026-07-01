@@ -6,6 +6,10 @@ aus DWD RADOLAN-RW (1 km, stationsgeeicht), bilinear interpoliert.
 Schreibt radolan.json fuer die Wetter-App. Laeuft stuendlich per GitHub-Action.
 Zusatz (v1.1): schreibt die Tagessummen des 3x3-Kranzes um den eigenen Pixel mit,
 zur Pruefung, wie stark die Nachbarkacheln abweichen.
+Zusatz (v1.2): schreibt radolan.json nur, wenn mindestens eine echte Radar-Stunde
+geholt wurde. Verhindert, dass ein Lauf ohne Daten (z.B. kurz nach lokaler
+Mitternacht, bevor die ersten RW-Bilder des Tages existieren) die guten
+Vortagsdaten mit einer leeren Datei ueberschreibt.
 """
 import gzip, json, urllib.request, urllib.error
 from datetime import datetime, timedelta, timezone
@@ -25,7 +29,7 @@ KRANZ_COLS = (424, 425, 426)                        # West -> Ost
 NROW = NCOL = 900
 BASE = "https://opendata.dwd.de/climate_environment/CDC/grids_germany/hourly/radolan/recent/bin/"
 TZ   = ZoneInfo("Europe/Berlin")
-UA   = {"User-Agent": "wetter-giessen-radolan/1.1 (GitHub Action)"}
+UA   = {"User-Agent": "wetter-giessen-radolan/1.2 (GitHub Action)"}
 
 def fetch_rw(dt_utc):
     name = f"raa01-rw_10000-{dt_utc:%y%m%d%H%M}-dwd---bin.gz"
@@ -71,6 +75,17 @@ def main():
                             "status": "noch nicht verfuegbar" if e.code == 404 else f"HTTP {e.code}"})
         except Exception as e:
             details.append({"stunde": lbl, "mm": None, "fehler": str(e)[:80]})
+
+    # --- Schutz gegen leere Ueberschreibung (v1.2) ---
+    # Wenn keine einzige Stunde echte Radar-Daten geliefert hat, die bestehende
+    # radolan.json NICHT anfassen. Das passiert v.a. beim naechtlichen Lauf
+    # (00:35 MESZ), wenn fuer den neuen lokalen Tag noch keine RW-Bilder existieren:
+    # dann waere hours leer bzw. alle Abrufe 404, und eine leere Datei
+    # (summe_mm=0, stunden_erwartet=0) wuerde die guten Vortagsdaten ersetzen.
+    if ok == 0:
+        print(f"Keine Radar-Stunde geholt (erwartet {len(hours)}, ok 0) "
+              f"- radolan.json bleibt unveraendert.")
+        return
 
     umgebung = [[{"pixel": [r, c], "mm": round(kranz[(r, c)], 2), "eigenes": (r, c) == HOME}
                  for c in KRANZ_COLS] for r in KRANZ_ROWS]
