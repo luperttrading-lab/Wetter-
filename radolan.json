@@ -1,9 +1,42 @@
 {
   "datum": "2026-07-01",
-  "summe_mm": 0.0,
-  "stunden_ok": 0,
-  "stunden_erwartet": 0,
-  "stunden": [],
+  "summe_mm": 3.52,
+  "stunden_ok": 8,
+  "stunden_erwartet": 8,
+  "stunden": [
+    {
+      "stunde": "01:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "02:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "03:00",
+      "mm": 2.91
+    },
+    {
+      "stunde": "04:00",
+      "mm": 0.6
+    },
+    {
+      "stunde": "05:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "06:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "07:00",
+      "mm": 0.0
+    },
+    {
+      "stunde": "08:00",
+      "mm": 0.0
+    }
+  ],
   "umgebung_3x3": [
     [
       {
@@ -11,7 +44,7 @@
           410,
           424
         ],
-        "mm": 0.0,
+        "mm": 2.8,
         "eigenes": false
       },
       {
@@ -19,7 +52,7 @@
           410,
           425
         ],
-        "mm": 0.0,
+        "mm": 3.4,
         "eigenes": false
       },
       {
@@ -27,7 +60,7 @@
           410,
           426
         ],
-        "mm": 0.0,
+        "mm": 3.5,
         "eigenes": false
       }
     ],
@@ -37,7 +70,7 @@
           409,
           424
         ],
-        "mm": 0.0,
+        "mm": 3.7,
         "eigenes": false
       },
       {
@@ -45,7 +78,7 @@
           409,
           425
         ],
-        "mm": 0.0,
+        "mm": 3.6,
         "eigenes": true
       },
       {
@@ -53,7 +86,7 @@
           409,
           426
         ],
-        "mm": 0.0,
+        "mm": 3.0,
         "eigenes": false
       }
     ],
@@ -63,7 +96,7 @@
           408,
           424
         ],
-        "mm": 0.0,
+        "mm": 3.1,
         "eigenes": false
       },
       {
@@ -71,7 +104,7 @@
           408,
           425
         ],
-        "mm": 0.0,
+        "mm": 2.6,
         "eigenes": false
       },
       {
@@ -79,16 +112,16 @@
           408,
           426
         ],
-        "mm": 0.0,
+        "mm": 2.9,
         "eigenes": false
       }
     ]
   ],
   "letzter_regen": {
-    "datum": "2026-06-29",
-    "mm": 12.68
+    "datum": "2026-07-01",
+    "mm": 3.52
   },
-  "aktualisiert": "2026-06-30T22:57:47+00:00",
+  "aktualisiert": "2026-07-01T06:55:26+00:00",
   "quelle": "DWD RADOLAN-RW (1 km, stationsgeeicht)",
   "methode": "bilinear, Erlental 50.6480N 8.6741E"
 }
