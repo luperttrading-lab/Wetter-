@@ -145,7 +145,13 @@
   /* Nowcast */
   .nowcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:14px 15px 11px}
   .pl-card{background:#0b1320;border:1px solid #1a2838;padding:12px 12px 11px}
+  .pl-wrap{position:relative}
   #planetenCv{width:100%;display:block}
+  .pl-wheel{position:absolute;top:8px;right:8px;width:76px;text-align:center;background:rgba(8,14,24,.74);border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:5px 0 4px;touch-action:none;user-select:none;-webkit-user-select:none;color:#e7edf5;font-variant-numeric:tabular-nums;cursor:ns-resize}
+  .pw-a{font-size:11px;color:#93a0b0;height:15px;line-height:15px}
+  .pw-b{font-size:16px;font-weight:800;height:21px;line-height:21px;color:#ffd66b}
+  .pl-now{position:absolute;top:8px;left:8px;background:rgba(8,14,24,.74);border:1px solid rgba(255,255,255,.16);border-radius:11px;color:#e7edf5;font:700 12.5px/1 -apple-system,system-ui,sans-serif;padding:9px 12px;opacity:.5}
+  .pl-now.on{opacity:1;border-color:#ffd66b;color:#ffd66b}
   .pl-leg{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;margin-top:11px}
   .pl-item{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#c7d0dc;font-weight:600}
   .pl-dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 5px currentColor}
@@ -260,7 +266,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.14</span>
+      <span class="ver">v2.15</span>
     </div>
   </header>
 
@@ -298,7 +304,7 @@
     <div class="sect">Details</div>
     <div class="grid" id="grid"></div>
     <div id="airSec" class="hidden"><div class="sect">UV &amp; Mond</div><div class="grid" id="gridAir"></div></div>
-    <div id="planetenSec" class="hidden"><div class="sect">Planeten am Himmel</div><div class="nowcard pl-card"><canvas id="planetenCv"></canvas><div id="planetenLeg" class="pl-leg"></div><div class="pl-note">Planeten sichtbar bei D&auml;mmerung &middot; Mond ganzt&auml;gig &middot; Kugeln = Position jetzt</div></div></div>
+    <div id="planetenSec" class="hidden"><div class="sect">Planeten am Himmel</div><div class="nowcard pl-card"><div class="pl-wrap"><canvas id="planetenCv"></canvas><div id="plWheel" class="pl-wheel"><div class="pw-a" id="pwPrev"></div><div class="pw-b" id="pwCur"></div><div class="pw-a" id="pwNext"></div></div><button id="plNow" class="pl-now">Jetzt</button></div><div id="planetenLeg" class="pl-leg"></div><div class="pl-note">Planeten sichtbar bei D&auml;mmerung &middot; Mond ganzt&auml;gig</div></div></div>
     <div id="issSec" class="hidden"><div class="sect">ISS-Überflüge</div><div id="issMain"></div><div id="issList"></div></div>
   </div>
 
@@ -1390,6 +1396,33 @@ const P_NAME={venus:'Venus',merkur:'Merkur',jupiter:'Jupiter',mars:'Mars',saturn
 const PL_BODIES=['saturn','mars','merkur','jupiter','venus','mond'];
 const PL_DUSK=-3; // Sonne unter -3 Grad = dunkel genug fuer Planeten
 
+/* Zustand: min=null -> live "jetzt"; sonst gewaehlte Minute des heutigen Tages (0..1439) */
+const PL_STATE={min:null};
+const PL_CACHE={day:null,arcs:null,fit:null};
+/* Himmel nach Sonnenhoehe: Keyframes [alt, top, mid, bot, ink, grid, axisTxt, zeroLine, moonCurve] */
+const SKY_KEYS=[
+  [ 20,'#5ea7dd','#8fc3e9','#c8e4f5','#17324a','#8fb3cd','#35597a','#4a708f','#7188a3'],
+  [  4,'#5b95c9','#8fbbde','#eed7a6','#17324a','#88a9c4','#35597a','#4a708f','#7188a3'],
+  [ -3,'#33567e','#4d6f96','#e8a765','#dbe4ee','#3f5a79','#8fa3b8','#5f7893','#cfd8e6'],
+  [ -8,'#17293f','#22374f','#7a5a48','#d3dce8','#2a3d55','#7c8ba0','#5a6d84','#cfd8e6'],
+  [-13,'#0e1a2c','#131f31','#33291f','#c7d0dc','#20304a','#6b7789','#5a6675','#cfd8e6'],
+  [-18,'#0a1220','#0f1826','#1c1712','#c7d0dc','#1a2531','#6b7789','#5a6675','#cfd8e6']
+];
+function plLerpHex(a,b,t){const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16);
+  const r=Math.round((pa>>16&255)+((pb>>16&255)-(pa>>16&255))*t),
+    g=Math.round((pa>>8&255)+((pb>>8&255)-(pa>>8&255))*t),
+    bl=Math.round((pa&255)+((pb&255)-(pa&255))*t);
+  return'#'+((1<<24)|(r<<16)|(g<<8)|bl).toString(16).slice(1);}
+function skyTheme(sunAlt){
+  const K=SKY_KEYS;
+  if(sunAlt>=K[0][0])return K[0].slice(1);
+  if(sunAlt<=K[K.length-1][0])return K[K.length-1].slice(1);
+  for(let i=0;i<K.length-1;i++){const a=K[i],b=K[i+1];
+    if(sunAlt<=a[0]&&sunAlt>=b[0]){const t=(a[0]-sunAlt)/(a[0]-b[0]);
+      return a.slice(1).map((c,j)=>plLerpHex(c,b[j+1],t));}}
+  return K[K.length-1].slice(1);
+}
+function plNowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
 function drawPlaneten(){
   const cv=el("planetenCv");if(!cv)return;
   const W=cv.clientWidth;if(!W||W<140)return;
@@ -1399,69 +1432,113 @@ function drawPlaneten(){
   const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
 
   const now=new Date();
-  const jdNow=jdFromDate(now.getFullYear(),now.getMonth()+1,now.getDate())+(now.getHours()*60+now.getMinutes())/1440;
   const dayBase=jdFromDate(now.getFullYear(),now.getMonth()+1,now.getDate());
+  const selMin=PL_STATE.min!=null?PL_STATE.min:plNowMin();
+  const jdSel=dayBase+selMin/1440;
 
-  const arcs={};PL_BODIES.forEach(n=>{const arc=[];
-    for(let t=0;t<=1440;t+=6){const p=altaz(n,dayBase+t/1440,AST_LAT),su=altaz('sonne',dayBase+t/1440,AST_LAT).alt;arc.push({az:p.az,alt:p.alt,t,vis:p.alt>0&&(n==='mond'||su<PL_DUSK)});}
-    arcs[n]=arc;});
-  const sunNow=altaz('sonne',jdNow,AST_LAT).alt;
-  const pos={};PL_BODIES.forEach(n=>{const p=altaz(n,jdNow,AST_LAT);pos[n]={az:p.az,alt:p.alt,show:p.alt>0&&(n==='mond'||sunNow<PL_DUSK)};});
+  /* Tagesboegen + Fit haengen nur vom Datum ab -> Cache (fluessiges Drehen) */
+  if(PL_CACHE.day!==dayBase){
+    const arcs={};PL_BODIES.forEach(n=>{const arc=[];
+      for(let t=0;t<=1440;t+=6){const p=altaz(n,dayBase+t/1440,AST_LAT),su=altaz('sonne',dayBase+t/1440,AST_LAT).alt;arc.push({az:p.az,alt:p.alt,t,vis:p.alt>0&&(n==='mond'||su<PL_DUSK)});}
+      arcs[n]=arc;});
+    let azMin=999,azMax=-999,altMax=15;
+    for(const n of PL_BODIES)for(const p of arcs[n]){if(!p.vis)continue;azMin=Math.min(azMin,p.az);azMax=Math.max(azMax,p.az);altMax=Math.max(altMax,p.alt);}
+    if(azMin>azMax){azMin=200;azMax=340;}
+    const pad=(azMax-azMin)*0.08+4;azMin-=pad;azMax+=pad;
+    altMax=Math.max(24,Math.min(50,altMax+5));
+    PL_CACHE.day=dayBase;PL_CACHE.arcs=arcs;PL_CACHE.fit={azMin,azMax,altMax};
+  }
+  const arcs=PL_CACHE.arcs,{azMin,azMax,altMax}=PL_CACHE.fit,altMin=-6;
 
-  let azMin=999,azMax=-999,altMax=15;
-  for(const n of PL_BODIES)for(const p of arcs[n]){if(!p.vis)continue;azMin=Math.min(azMin,p.az);azMax=Math.max(azMax,p.az);altMax=Math.max(altMax,p.alt);}
-  if(azMin>azMax){azMin=200;azMax=340;}
-  const pad=(azMax-azMin)*0.08+4;azMin-=pad;azMax+=pad;
-  altMax=Math.max(24,Math.min(50,altMax+5));const altMin=-6;
+  const sunSel=altaz('sonne',jdSel,AST_LAT);
+  const pos={};PL_BODIES.forEach(n=>{const p=altaz(n,jdSel,AST_LAT);pos[n]={az:p.az,alt:p.alt,show:p.alt>0&&(n==='mond'||sunSel.alt<PL_DUSK)};});
 
   const mL=26,mR=10,mT=12,mB=22,pw=W-mL-mR,ph=H-mT-mB;
   const X=az=>mL+(az-azMin)/(azMax-azMin)*pw,Y=al=>mT+(altMax-al)/(altMax-altMin)*ph;
   const rgba=(hex,al)=>{const n=parseInt(hex.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${al})`;};
 
-  const bg=ctx.createLinearGradient(0,mT,0,mT+ph);bg.addColorStop(0,'#0a1220');bg.addColorStop(0.62,'#0f1826');bg.addColorStop(1,'#1c1712');ctx.fillStyle=bg;ctx.fillRect(mL,mT,pw,ph);
+  const [thTop,thMid,thBot,thInk,thGrid,thAxis,thZero,thMoon]=skyTheme(sunSel.alt);
+  const bg=ctx.createLinearGradient(0,mT,0,mT+ph);bg.addColorStop(0,thTop);bg.addColorStop(0.62,thMid);bg.addColorStop(1,thBot);ctx.fillStyle=bg;ctx.fillRect(mL,mT,pw,ph);
 
   ctx.font='9px system-ui,sans-serif';
-  for(let a=Math.ceil(azMin/15)*15;a<=azMax;a+=15){ctx.strokeStyle='#1a2531';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(a),mT);ctx.lineTo(X(a),mT+ph);ctx.stroke();}
-  for(let al=Math.ceil(altMin/10)*10;al<=altMax;al+=10){ctx.strokeStyle=al===0?'#5a6675':'#1a2531';ctx.lineWidth=al===0?2:1;ctx.beginPath();ctx.moveTo(mL,Y(al));ctx.lineTo(mL+pw,Y(al));ctx.stroke();ctx.fillStyle='#6b7789';ctx.textAlign='right';ctx.fillText(al+'\u00b0',mL-4,Y(al)+3);}
+  for(let a=Math.ceil(azMin/15)*15;a<=azMax;a+=15){ctx.strokeStyle=rgba(thGrid,.55);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(a),mT);ctx.lineTo(X(a),mT+ph);ctx.stroke();}
+  for(let al=Math.ceil(altMin/10)*10;al<=altMax;al+=10){ctx.strokeStyle=al===0?thZero:rgba(thGrid,.55);ctx.lineWidth=al===0?2:1;ctx.beginPath();ctx.moveTo(mL,Y(al));ctx.lineTo(mL+pw,Y(al));ctx.stroke();ctx.fillStyle=thAxis;ctx.textAlign='right';ctx.fillText(al+'\u00b0',mL-4,Y(al)+3);}
   const baseY=mT+ph;
   const compass={0:'N',45:'NO',90:'O',135:'SO',180:'S',225:'SW',270:'W',315:'NW',360:'N'};
   ctx.textAlign='center';
-  for(let a=Math.ceil(azMin/15)*15;a<=azMax;a+=15){const k=norm360(a),card=compass[k];ctx.strokeStyle=card?'#8a97a5':'#2a3441';ctx.lineWidth=card?1.5:1;ctx.beginPath();ctx.moveTo(X(a),baseY);ctx.lineTo(X(a),baseY+(card?6:3));ctx.stroke();if(card){ctx.font='700 11px system-ui,sans-serif';ctx.fillStyle='#c7d0dc';ctx.fillText(card,X(a),baseY+17);}}
+  for(let a=Math.ceil(azMin/15)*15;a<=azMax;a+=15){const k=norm360(a),card=compass[k];ctx.strokeStyle=card?thAxis:rgba(thGrid,.8);ctx.lineWidth=card?1.5:1;ctx.beginPath();ctx.moveTo(X(a),baseY);ctx.lineTo(X(a),baseY+(card?6:3));ctx.stroke();if(card){ctx.font='700 11px system-ui,sans-serif';ctx.fillStyle=thInk;ctx.fillText(card,X(a),baseY+17);}}
 
-  PL_BODIES.forEach(n=>{const arc=arcs[n];ctx.strokeStyle=rgba(P_COL[n],.82);ctx.lineWidth=2;ctx.beginPath();let pen=false,pAz=null;for(const p of arc){const ok=p.vis,wrap=pAz!==null&&Math.abs(p.az-pAz)>180;if(!ok||wrap)pen=false;if(ok){const x=X(p.az),y=Y(p.alt);if(!pen){ctx.moveTo(x,y);pen=true;}else ctx.lineTo(x,y);}pAz=ok?p.az:null;}ctx.stroke();ctx.fillStyle=rgba(P_COL[n],.85);for(const p of arc)if(p.vis&&p.t%60===0){ctx.beginPath();ctx.arc(X(p.az),Y(p.alt),1.4,0,7);ctx.fill();}});
+  PL_BODIES.forEach(n=>{const arc=arcs[n];const col=n==='mond'?thMoon:P_COL[n];
+    ctx.strokeStyle=rgba(col,.82);ctx.lineWidth=2;ctx.beginPath();let pen=false,pAz=null;
+    for(const p of arc){const ok=p.vis,wrap=pAz!==null&&Math.abs(p.az-pAz)>180;if(!ok||wrap)pen=false;if(ok){const x=X(p.az),y=Y(p.alt);if(!pen){ctx.moveTo(x,y);pen=true;}else ctx.lineTo(x,y);}pAz=ok?p.az:null;}
+    ctx.stroke();
+    ctx.fillStyle=rgba(col,.85);for(const p of arc)if(p.vis&&p.t%60===0){ctx.beginPath();ctx.arc(X(p.az),Y(p.alt),1.4,0,7);ctx.fill();}});
+
+  /* Sonne als Marker mit Strahlen, solange sie im (erweiterten) Bild steht */
+  if(sunSel.alt>-9&&sunSel.az>azMin&&sunSel.az<azMax&&sunSel.alt<altMax+3){
+    const x=X(sunSel.az),y=Y(sunSel.alt);
+    ctx.save();ctx.shadowColor='#ffb14a';ctx.shadowBlur=14;
+    ctx.strokeStyle='#ffb14a';ctx.lineWidth=2;ctx.lineCap='round';
+    for(let r0=0;r0<8;r0++){const a=r0*Math.PI/4;
+      ctx.beginPath();ctx.moveTo(x+Math.cos(a)*7,y+Math.sin(a)*7);ctx.lineTo(x+Math.cos(a)*11,y+Math.sin(a)*11);ctx.stroke();}
+    ctx.fillStyle='#ffdf6b';ctx.beginPath();ctx.arc(x,y,4.8,0,7);ctx.fill();ctx.restore();
+  }
 
   const pBall=(n,x,y,r)=>{const col=P_COL[n];const g=ctx.createRadialGradient(x-r*0.35,y-r*0.35,r*0.1,x,y,r);g.addColorStop(0,'rgba(255,255,255,.82)');g.addColorStop(0.35,col);g.addColorStop(1,col);ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=g;ctx.fill();};
   PL_BODIES.forEach(n=>{const m=pos[n];if(!m.show)return;const x=X(m.az),y=Y(m.alt),r=P_SIZE[n]||6;ctx.save();ctx.shadowColor=P_COL[n];ctx.shadowBlur=10;
     if(n==='saturn'){const rc='#d8c690';ctx.lineWidth=1.1;ctx.strokeStyle=rgba(rc,.5);ctx.beginPath();ctx.ellipse(x,y,r*2.1,r*2.1*.34,0,Math.PI,2*Math.PI);ctx.stroke();pBall(n,x,y,r);ctx.strokeStyle=rgba(rc,.85);ctx.beginPath();ctx.ellipse(x,y,r*2.1,r*2.1*.34,0,0,Math.PI);ctx.stroke();}
     else pBall(n,x,y,r);
     if(n==='mond'){ // echte Sichelgeometrie: Phasenwinkel + Anstrahlrichtung zur Sonne
-      const Tc=(jdNow-astTzOff(now.getFullYear(),now.getMonth()+1,now.getDate())/24-2451545)/36525,
+      const Tc=(jdSel-astTzOff(now.getFullYear(),now.getMonth()+1,now.getDate())/24-2451545)/36525,
         peM=helio('erde',Tc),
         lonS=norm360(Math.atan2(-peM.y,-peM.x)*R2D),
         lonM=moonEcl(Tc*36525).lon,
         dPh=norm360(lonM-lonS),c=Math.cos(dPh*D2R);
-      const sp=altaz('sonne',jdNow,AST_LAT);
-      let ang=Math.atan2(Y(sp.alt)-y,X(sp.az)-x);
+      let ang=Math.atan2(Y(sunSel.alt)-y,X(sunSel.az)-x);
       if(!isFinite(ang))ang=Math.sin(dPh*D2R)>0?0:Math.PI;
       ctx.shadowColor='transparent';ctx.shadowBlur=0;
       ctx.translate(x,y);ctx.rotate(ang); // +x = beleuchtete Seite
       ctx.fillStyle='rgba(7,10,18,.88)';
       ctx.beginPath();
-      ctx.arc(0,0,r,Math.PI/2,3*Math.PI/2,false);                    // dunkler Rand
-      ctx.ellipse(0,0,Math.abs(c)*r,r,0,3*Math.PI/2,Math.PI/2,c<0);  // Terminator-Ellipse
+      ctx.arc(0,0,r,Math.PI/2,3*Math.PI/2,false);
+      ctx.ellipse(0,0,Math.abs(c)*r,r,0,3*Math.PI/2,Math.PI/2,c<0);
       ctx.closePath();ctx.fill();
     }
     ctx.restore();});
 
+  /* Wheel + Jetzt-Button + Legende */
+  const f2=v=>String(v).padStart(2,'0'),fmtMin=m=>{const mm=((m%1440)+1440)%1440;return f2(Math.floor(mm/60))+':'+f2(mm%60);};
+  if(el("pwCur")){el("pwPrev").textContent=fmtMin(selMin-15);el("pwCur").textContent=fmtMin(selMin);el("pwNext").textContent=fmtMin(selMin+15);}
+  const nb=el("plNow");if(nb)nb.classList.toggle("on",PL_STATE.min!=null);
   const leg=el("planetenLeg");if(leg){
     const D16=['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'],dir=az=>D16[Math.round(az/22.5)%16];
     const vis=PL_BODIES.filter(n=>pos[n].show).sort((a,b)=>pos[b].alt-pos[a].alt);
     leg.innerHTML=vis.length?vis.map(n=>`<span class="pl-item"><span class="pl-dot" style="background:${P_COL[n]}"></span>${P_NAME[n]} ${pos[n].alt.toFixed(0)}\u00b0 ${dir(pos[n].az)}</span>`).join('')
-      :(sunNow>=PL_DUSK?'<span class="pl-empty">Noch zu hell &ndash; die Kurven zeigen die kommende Nacht</span>':'<span class="pl-empty">Zurzeit kein Planet \u00fcber dem Horizont</span>');
+      :(sunSel.alt>=PL_DUSK?'<span class="pl-empty">Zu hell &ndash; die Kurven zeigen die Nacht</span>':'<span class="pl-empty">Kein Planet \u00fcber dem Horizont</span>');
   }
 }
-function renderPlaneten(){const sec=el("planetenSec");if(!sec)return;sec.classList.remove("hidden");drawPlaneten();}
-
+/* --- Uhrzeit-Drehrad: vertikaler Drag in 15-Minuten-Schritten (iOS-sicher) --- */
+let _plDrag=false,_plY0=0,_plMin0=0,_plMoved=0;
+function setPlMin(m){PL_STATE.min=((Math.round(m)%1440)+1440)%1440;drawPlaneten();}
+function initPlWheel(){
+  const w=el("plWheel"),nb=el("plNow");if(!w||w._init)return;w._init=true;
+  const start=y=>{_plDrag=true;_plY0=y;_plMin0=PL_STATE.min!=null?PL_STATE.min:plNowMin();_plMoved=0;};
+  w.addEventListener("touchstart",e=>start(e.touches[0].clientY),{passive:true});
+  w.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")start(e.clientY);});
+  document.addEventListener("pointermove",e=>{if(!_plDrag)return;
+    const dy=e.clientY-_plY0;_plMoved=Math.max(_plMoved,Math.abs(dy));
+    const st=Math.round(-dy/16);
+    const q=Math.round(_plMin0/15)*15+st*15;
+    if(PL_STATE.min===null||q!==PL_STATE.min)setPlMin(q);});
+  document.addEventListener("touchmove",e=>{if(_plDrag)e.preventDefault();},{passive:false});
+  const stop=()=>{_plDrag=false;};
+  document.addEventListener("pointerup",stop);document.addEventListener("pointercancel",stop);
+  document.addEventListener("touchend",stop);document.addEventListener("touchcancel",stop);
+  el("pwPrev").addEventListener("click",()=>{if(_plMoved>6)return;setPlMin((PL_STATE.min!=null?PL_STATE.min:plNowMin())-15);});
+  el("pwNext").addEventListener("click",()=>{if(_plMoved>6)return;setPlMin((PL_STATE.min!=null?PL_STATE.min:plNowMin())+15);});
+  nb.addEventListener("click",()=>{PL_STATE.min=null;drawPlaneten();});
+}
+function renderPlaneten(){const sec=el("planetenSec");if(!sec)return;sec.classList.remove("hidden");initPlWheel();drawPlaneten();}
 function renderWolken(j){
   const sec=el("wolkenSec");if(!sec)return;
   const arr=Array.isArray(j)?j:(j?[j]:[]);
