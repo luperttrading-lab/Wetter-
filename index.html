@@ -252,7 +252,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.0</span>
+      <span class="ver">v2.01</span>
     </div>
   </header>
 
@@ -1186,9 +1186,10 @@ function drawUV(h){
   // diskrete UV-Farbblöcke wie BfS (Block k deckt UV k-0,5 .. k+0,5); Palette aus dem BfS-Bild
   // BFSCOL ist global definiert (identisch fuer Skala/Saeulen/Punkt/Badge)
   for(let k=0;k<=9;k++){const yt=Y(Math.min(k+0.5,axMax)),yb=Y(Math.max(k-0.5,0));x.fillStyle=BFSCOL[k];x.fillRect(scaleX,yt,scaleW,yb-yt);}
-  // kleine Skalenstriche nach innen (in den Plot) bei jeder halben UV-Stufe (wie BfS)
+  // kleine Markierungsstriche nach innen an allen vier Achsen (wie BfS): links+rechts je halbe UV-Stufe, oben+unten je volle Stunde
   x.strokeStyle="rgba(0,0,0,.55)";x.lineWidth=1;
-  for(let tk=0;tk<=axMax+0.01;tk+=0.5){const yy=Math.round(Y(tk))+.5;x.beginPath();x.moveTo(gx0,yy);x.lineTo(gx0+3,yy);x.stroke();}
+  for(let tk=0;tk<=axMax+0.01;tk+=0.5){const yy=Math.round(Y(Math.min(tk,axMax)))+.5;x.beginPath();x.moveTo(gx0,yy);x.lineTo(gx0+3,yy);x.moveTo(gx1,yy);x.lineTo(gx1-3,yy);x.stroke();}
+  for(let hh3=6;hh3<=21;hh3++){const xx3=Math.round(X(day.getTime()+hh3*3600e3))+.5;x.beginPath();x.moveTo(xx3,gy1);x.lineTo(xx3,gy1-3);x.moveTo(xx3,gy0);x.lineTo(xx3,gy0+3);x.stroke();}
   // Zahlen mittig im Block, ohne weißen Rand; die 0 ganz unten knapp über der X-Achse
   x.font="800 9.5px -apple-system,system-ui,sans-serif";x.textAlign="center";x.fillStyle="#000";
   for(let g=0;g<=yMax;g++){const yy=g===0?Y(0):Y(g);x.textBaseline=g===0?"bottom":"middle";x.fillText(g,scaleX+scaleW/2,yy);}
