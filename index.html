@@ -152,7 +152,7 @@
   .pw-b{font-size:16px;font-weight:800;height:21px;line-height:21px;color:#ffd66b}
   .pl-now{position:absolute;top:8px;left:8px;background:rgba(8,14,24,.74);border:1px solid rgba(255,255,255,.16);border-radius:11px;color:#e7edf5;font:700 12.5px/1 -apple-system,system-ui,sans-serif;padding:9px 12px;opacity:.5}
   .pl-now.on{opacity:1;border-color:#ffd66b;color:#ffd66b}
-  .pl-leg{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;margin-top:11px}
+  .pl-leg{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;align-content:flex-start;margin-top:11px;min-height:38px}
   .pl-item{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#c7d0dc;font-weight:600}
   .pl-dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 5px currentColor}
   .pl-empty{font-size:12.5px;color:#8a97a5;padding:4px}
@@ -266,7 +266,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.16</span>
+      <span class="ver">v2.17</span>
     </div>
   </header>
 
@@ -1432,7 +1432,7 @@ function plNowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
 function drawPlaneten(){
   const cv=el("planetenCv");if(!cv)return;
   const W=cv.clientWidth;if(!W||W<140)return;
-  const H=Math.round(W*0.60);
+  const H=Math.round(W*0.60)+32; // +32px "Ueber-Himmel-Zone" oben fuer die hochlaufende Sonne
   const dpr=Math.min(window.devicePixelRatio||1,2);
   cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+"px";
   const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
@@ -1463,7 +1463,7 @@ function drawPlaneten(){
       show:dusk&&p.alt>(n==='mond'?-3.2:-1.6),  // Toleranz: Oberrand ragt noch ueber den Horizont
       leg:dusk&&p.alt>0};});
 
-  const mL=26,mR=10,mT=12,mB=22,pw=W-mL-mR,ph=H-mT-mB;
+  const mL=26,mR=10,mT=44,mB=22,pw=W-mL-mR,ph=H-mT-mB;
   const X=az=>mL+(az-azMin)/(azMax-azMin)*pw,Y=al=>mT+(altMax-al)/(altMax-altMin)*ph;
   const rgba=(hex,al)=>{const n=parseInt(hex.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${al})`;};
 
@@ -1484,16 +1484,18 @@ function drawPlaneten(){
     ctx.stroke();
     ctx.fillStyle=rgba(col,.85);for(const p of arc)if(p.vis&&p.t%60===0){ctx.beginPath();ctx.arc(X(p.az),Y(p.alt),1.4,0,7);ctx.fill();}});
 
-  /* Sonne als Marker: ueber dem Horizont voll, der Teil darunter matt */
+  /* Sonne als Marker: ueber dem Horizont voll, der Teil darunter matt.
+     Steigt sie ueber den Plotrand, laeuft sie komprimiert in der Zone darueber weiter. */
   const yHor=Y(0);
-  if(sunSel.alt>-10&&sunSel.az>azMin&&sunSel.az<azMax&&sunSel.alt<altMax+3){
-    const x=X(sunSel.az),y=Y(sunSel.alt);
+  if(sunSel.alt>-10&&sunSel.az>azMin&&sunSel.az<azMax){
+    const x=X(sunSel.az);
+    const y=sunSel.alt<=altMax?Y(sunSel.alt):(mT-(sunSel.alt-altMax)/(70-altMax)*(mT-10));
     const drawSun=blur=>{ctx.shadowColor='#ffb14a';ctx.shadowBlur=blur;
       ctx.strokeStyle='#ffb14a';ctx.lineWidth=2;ctx.lineCap='round';
       for(let r0=0;r0<8;r0++){const a=r0*Math.PI/4;
         ctx.beginPath();ctx.moveTo(x+Math.cos(a)*7,y+Math.sin(a)*7);ctx.lineTo(x+Math.cos(a)*11,y+Math.sin(a)*11);ctx.stroke();}
       ctx.fillStyle='#ffdf6b';ctx.beginPath();ctx.arc(x,y,4.8,0,7);ctx.fill();};
-    ctx.save();ctx.beginPath();ctx.rect(mL,mT,pw,Math.max(0,yHor-mT));ctx.clip();drawSun(14);ctx.restore();
+    ctx.save();ctx.beginPath();ctx.rect(mL,2,pw,Math.max(0,yHor-2));ctx.clip();drawSun(14);ctx.restore();
     ctx.save();ctx.beginPath();ctx.rect(mL,yHor,pw,Math.max(0,mT+ph-yHor));ctx.clip();ctx.globalAlpha=.32;drawSun(4);ctx.restore();
   }
 
