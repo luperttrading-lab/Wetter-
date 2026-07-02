@@ -271,7 +271,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.31</span>
+      <span class="ver">v2.32</span>
     </div>
   </header>
 
@@ -433,14 +433,13 @@ function setHaze(t){const c=thermal(t);el("bg").style.setProperty("--bg-haze",rg
 function showState(w){el("stLoading").classList.toggle("on",w==="loading");el("stError").classList.toggle("on",w==="error");el("content").classList.toggle("hidden",w==="loading"||w==="error");el("hero").classList.toggle("hidden",w==="loading"||w==="error");}
 
 async function load(silent){
+  if(_loading)return;_loading=true;
   if(!silent)showState("loading");
   el("refresh").classList.add("spin");
   try{
     const now=new Date(), from=new Date(now-(CHART_PAST_H+2)*3600e3), to=new Date(now.getTime()+CHART_FUT_H*3600e3);
     const url=`https://api.brightsky.dev/weather?lat=${LAT}&lon=${LON}&date=${isoDate(from)}&last_date=${isoDate(to)}&tz=Europe/Berlin`;
-    const r=await fetch(url,{headers:{Accept:"application/json"}});
-    if(!r.ok)throw new Error("HTTP "+r.status);
-    const j=await r.json(), srcs=j.sources||[];
+    const j=await fetchJSON(url,12000), srcs=j.sources||[]; // 12-s-Timeout statt Endlos-Spinner
     const fcIds=new Set(srcs.filter(s=>(s.observation_type||"").toLowerCase()==="forecast").map(s=>s.id));
     const obsSrc=srcs.find(s=>(s.observation_type||"").toLowerCase()!=="forecast")||srcs[0]||{};
     const sorted=(j.weather||[]).filter(w=>w.temperature!=null)
@@ -454,12 +453,11 @@ async function load(silent){
     loadExtras();
   }catch(err){console.warn("Live-Abruf:",err);
     if(!silent){el("stErrorMsg").textContent="Keine Verbindung zur Wetterstation ("+err.message+").";showState("error");}}
-  finally{el("refresh").classList.remove("spin");}
+  finally{el("refresh").classList.remove("spin");_loading=false;}
 }
 async function tryCurrent(obsSrc){
   try{
-    const r=await fetch(`https://api.brightsky.dev/current_weather?lat=${LAT}&lon=${LON}`,{headers:{Accept:"application/json"}});
-    if(!r.ok)return;const j=await r.json(),w=j.weather||{},s=(j.sources&&j.sources[0])||{};
+    const j=await fetchJSON(`https://api.brightsky.dev/current_weather?lat=${LAT}&lon=${LON}`,9000),w=j.weather||{},s=(j.sources&&j.sources[0])||{};
     if(!Number.isFinite(w.temperature)||!w.timestamp)return;
     const same=(s.dwd_station_id&&obsSrc.dwd_station_id&&s.dwd_station_id===obsSrc.dwd_station_id)||(s.station_name&&obsSrc.station_name&&s.station_name===obsSrc.station_name);
     if(!same||!lastRows||!lastRows.length)return;
@@ -1113,6 +1111,7 @@ function setUvDay(off){uvDayOffset=off;if(uvAirFull)renderAirGrid(uvAirFull);}
 
 function renderAirGrid(air){
   el("airSec").classList.remove("hidden");
+  _bfsTs=Date.now(); // BfS-Bild aktualisiert minuetlich -> bei jedem Neuaufbau frische URL
   const c=air&&air.current,hFull=air&&air.hourly;
   if(hFull&&hFull.uv_index_clear_sky)uvAirFull=air;
   const h=filterUvDay(hFull,uvDayOffset);
@@ -1814,18 +1813,20 @@ function loadCached(key,url,ttlFresh,ttlStale,render,secId,label){
     [...sec.children].forEach(ch=>{if(!ch.classList.contains("sect")&&!ch.classList.contains("sec-err"))ch.classList.add("hidden");});
   });
 }
+let _nowcastHad=false,_rainHrHad=false; // Resilienz: einmal gezeigte Sektionen bleiben bei Fetch-Fehlern stehen
 function loadNowcast(){
-  fetchJSON(`https://api.brightsky.dev/radar?lat=${LAT}&lon=${LON}&distance=1000&format=plain&tz=Europe/Berlin&date=${encodeURIComponent(new Date().toISOString())}`,11000).then(renderNowcast).catch(e=>{el("nowcastSec").classList.add("hidden");console.warn("radar",e.message);});
+  fetchJSON(`https://api.brightsky.dev/radar?lat=${LAT}&lon=${LON}&distance=1000&format=plain&tz=Europe/Berlin&date=${encodeURIComponent(new Date().toISOString())}`,11000).then(d=>{_nowcastHad=true;renderNowcast(d);}).catch(e=>{if(!_nowcastHad)el("nowcastSec").classList.add("hidden");console.warn("radar",e.message);});
 }
 /* --- Auto-Refresh beim Zurueckkehren in die App ---
    Voll (>30 min alt): kompletter Neuabruf, still (bei Fehler bleibt alter Stand).
    Schnell (>5 min alt): nur RADOLAN + Nowcast (5-Minuten-Radar) + Planeten "jetzt". */
-let _lastFull=0,_lastFast=0;
+let _lastFull=0,_lastFast=0,_loading=false;
 const REFRESH_FULL_MS=30*60e3,REFRESH_FAST_MS=5*60e3;
 function refreshFast(){_lastFast=Date.now();renderRadolan();loadNowcast();drawPlaneten();}
 function maybeRefresh(){
   if(document.visibilityState!=="visible")return;
   const t=Date.now();
+  if(!_lastFull){const err=el("stError");if(err&&err.classList.contains("on"))load(true);return;} // Erststart gescheitert -> beim Zurueckkehren still neu versuchen
   if(_lastFull&&t-_lastFull>REFRESH_FULL_MS)load(true);
   else if(_lastFast&&t-_lastFast>REFRESH_FAST_MS)refreshFast();
   else if(_lastFull)drawPlaneten(); // Planetenpositionen kosten nichts: immer aktuell
@@ -1836,7 +1837,7 @@ function loadExtras(){
   try{renderAirGrid(null);}catch(e){console.warn("airgrid",e);}   // Mond sofort, Rest folgt
   try{renderPlaneten();}catch(e){console.warn("planeten",e);}     // rein berechnet, kein Fetch
   const ll=`latitude=${LAT}&longitude=${LON}`;
-  fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&hourly=precipitation,precipitation_probability,weather_code&forecast_days=2&timezone=Europe%2FBerlin`).then(d=>{renderRainHours(d);renderPrecipToday(d);}).catch(e=>{el("rainHrSec").classList.add("hidden");console.warn("rainhr",e.message);});
+  fetchJSON(`https://api.open-meteo.com/v1/forecast?${ll}&hourly=precipitation,precipitation_probability,weather_code&forecast_days=2&timezone=Europe%2FBerlin`).then(d=>{_rainHrHad=true;renderRainHours(d);renderPrecipToday(d);}).catch(e=>{if(!_rainHrHad)el("rainHrSec").classList.add("hidden");console.warn("rainhr",e.message);});
   renderRadolan(); // genauere DWD-Radar-Tagessumme; ueberschreibt den Open-Meteo-Wert oben, sobald da
   loadCached("wolkCache3",wolkenURL(),30*60e3,6*3600e3,renderWolken,"wolkenSec","Wolkenkarte");
   fetchJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?${ll}&current=uv_index,european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,ragweed_pollen&hourly=uv_index,uv_index_clear_sky&past_days=1&forecast_days=1&timezone=Europe%2FBerlin`).then(renderAirGrid).catch(e=>console.warn("air",e.message));
