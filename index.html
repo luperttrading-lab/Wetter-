@@ -271,7 +271,7 @@
       <div class="act-btn" id="refresh" role="button" aria-label="Aktualisieren">
         <span class="ico-refresh"></span>
       </div>
-      <span class="ver">v2.27</span>
+      <span class="ver">v2.28</span>
     </div>
   </header>
 
@@ -1655,21 +1655,24 @@ function drawPlaneten(){
   }
 }
 /* --- Uhrzeit-Drehrad: vertikaler Drag in 5-Minuten-Schritten (iOS-sicher) --- */
-let _plDrag=false,_plY0=0,_plMin0=0,_plMoved=0;
+let _plDrag=false,_plY0=0,_plMin0=0,_plMoved=0,_plDayB=0;
 let _plDragD=false,_plY0D=0,_plDay0=0,_plMovedD=0;
 function setPlDay(d){PL_STATE.dayOff=(d===0?null:d);drawPlaneten();}
-function setPlMin(m){PL_STATE.min=((Math.round(m)%1440)+1440)%1440;drawPlaneten();}
+function setPlDayMin(d,m){const nd=Math.max(-3660,Math.min(3660,d));PL_STATE.dayOff=(nd===0?null:nd);PL_STATE.min=m;drawPlaneten();}
+function setPlMin(m){m=Math.round(m);const dc=Math.floor(m/1440); // Uebertrag: 23:55 +5 -> naechster Tag 00:00, 00:00 -5 -> Vortag 23:55
+  setPlDayMin((PL_STATE.dayOff||0)+dc,m-dc*1440);}
 function initPlWheel(){
   const w=el("plWheel"),nb=el("plNow");if(!w||w._init)return;w._init=true;
   const cvv=el("planetenCv");if(cvv&&cvv.addEventListener)cvv.addEventListener("touchmove",e=>e.preventDefault(),{passive:false}); // Abrutschen vom Rad scrollt die Seite nicht
-  const start=y=>{_plDrag=true;_plY0=y;_plMin0=PL_STATE.min!=null?PL_STATE.min:plQ5(plNowMin());_plMoved=0;};
+  const start=y=>{_plDrag=true;_plY0=y;_plMin0=PL_STATE.min!=null?PL_STATE.min:plQ5(plNowMin());_plDayB=PL_STATE.dayOff||0;_plMoved=0;};
   w.addEventListener("touchstart",e=>start(e.touches[0].clientY),{passive:true});
   w.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")start(e.clientY);});
   document.addEventListener("pointermove",e=>{if(!_plDrag)return;
     const dy=e.clientY-_plY0;_plMoved=Math.max(_plMoved,Math.abs(dy));
     const st=Math.round(-dy/8);
-    const q=Math.round(_plMin0/5)*5+st*5;
-    if(PL_STATE.min===null||q!==PL_STATE.min)setPlMin(q);});
+    const tot=Math.round(_plMin0/5)*5+st*5;
+    const dc=Math.floor(tot/1440),mm=tot-dc*1440,nd=_plDayB+dc; // absolute Rechnung ab Drag-Start: kein Doppel-Uebertrag
+    if(mm!==PL_STATE.min||(Math.max(-3660,Math.min(3660,nd))===0?null:nd)!==PL_STATE.dayOff)setPlDayMin(nd,mm);});
   document.addEventListener("touchmove",e=>{if(_plDrag||_plDragD)e.preventDefault();},{passive:false});
   const stop=()=>{_plDrag=false;};
   document.addEventListener("pointerup",stop);document.addEventListener("pointercancel",stop);
