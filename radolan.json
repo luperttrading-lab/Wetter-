@@ -1,8 +1,8 @@
 {
-  "datum": "2026-07-01",
-  "summe_mm": 3.52,
-  "stunden_ok": 18,
-  "stunden_erwartet": 18,
+  "datum": "2026-07-02",
+  "summe_mm": 0.0,
+  "stunden_ok": 11,
+  "stunden_erwartet": 12,
   "stunden": [
     {
       "stunde": "01:00",
@@ -14,11 +14,11 @@
     },
     {
       "stunde": "03:00",
-      "mm": 2.91
+      "mm": 0.0
     },
     {
       "stunde": "04:00",
-      "mm": 0.6
+      "mm": 0.0
     },
     {
       "stunde": "05:00",
@@ -50,31 +50,8 @@
     },
     {
       "stunde": "12:00",
-      "mm": 0.0
-    },
-    {
-      "stunde": "13:00",
-      "mm": 0.0
-    },
-    {
-      "stunde": "14:00",
-      "mm": 0.0
-    },
-    {
-      "stunde": "15:00",
-      "mm": 0.0
-    },
-    {
-      "stunde": "16:00",
-      "mm": 0.0
-    },
-    {
-      "stunde": "17:00",
-      "mm": 0.0
-    },
-    {
-      "stunde": "18:00",
-      "mm": 0.0
+      "mm": null,
+      "status": "noch nicht verfuegbar"
     }
   ],
   "umgebung_3x3": [
@@ -84,7 +61,7 @@
           410,
           424
         ],
-        "mm": 2.8,
+        "mm": 0.0,
         "eigenes": false
       },
       {
@@ -92,7 +69,7 @@
           410,
           425
         ],
-        "mm": 3.4,
+        "mm": 0.0,
         "eigenes": false
       },
       {
@@ -100,7 +77,7 @@
           410,
           426
         ],
-        "mm": 3.5,
+        "mm": 0.0,
         "eigenes": false
       }
     ],
@@ -110,7 +87,7 @@
           409,
           424
         ],
-        "mm": 3.7,
+        "mm": 0.0,
         "eigenes": false
       },
       {
@@ -118,7 +95,7 @@
           409,
           425
         ],
-        "mm": 3.6,
+        "mm": 0.0,
         "eigenes": true
       },
       {
@@ -126,7 +103,7 @@
           409,
           426
         ],
-        "mm": 3.0,
+        "mm": 0.0,
         "eigenes": false
       }
     ],
@@ -136,7 +113,7 @@
           408,
           424
         ],
-        "mm": 3.1,
+        "mm": 0.0,
         "eigenes": false
       },
       {
@@ -144,7 +121,7 @@
           408,
           425
         ],
-        "mm": 2.6,
+        "mm": 0.0,
         "eigenes": false
       },
       {
@@ -152,7 +129,7 @@
           408,
           426
         ],
-        "mm": 2.9,
+        "mm": 0.0,
         "eigenes": false
       }
     ]
@@ -161,7 +138,7 @@
     "datum": "2026-07-01",
     "mm": 3.52
   },
-  "aktualisiert": "2026-07-01T16:41:35+00:00",
+  "aktualisiert": "2026-07-02T10:15:01+00:00",
   "quelle": "DWD RADOLAN-RW (1 km, stationsgeeicht)",
   "methode": "bilinear, Erlental 50.6480N 8.6741E"
 }
